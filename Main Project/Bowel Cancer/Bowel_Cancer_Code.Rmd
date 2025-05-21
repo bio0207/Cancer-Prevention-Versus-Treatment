@@ -1,0 +1,961 @@
+---
+title: "Bowel_Cancer_Code"
+output: html_document
+date: "2025-02-09"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 1. Set Up
+
+## Install and Load Packages
+```{r}
+
+library(tidyverse) # load tidyverse package to make graphs and format the data in tables
+library(car) # load car package for vifs to test for multicollinearity in multiple linear regressions
+library(effects) # load effects package to to calculate the marginal effects of a variable in multiple regression models to plot relationships 
+
+```
+
+## Load Data for the Bowel Cancer Analysis from the Main Project Folder
+```{r}
+
+# Load the CSV files for Bowel Cancer Incidence vs Deprivation
+bowelcancer_incidence_deprivation <- read.csv("bowel_cancer_incidence_deprivation.csv")
+bowelcancer_incidence_deprivation
+
+# Load the CSV files for Bowel Cancer Mortality vs Deprivation
+bowelcancer_mortality_deprivation <- read.csv("bowel_cancer_mortality_deprivation.csv")
+bowelcancer_mortality_deprivation
+
+# Load the CSV files for Bowel Cancer Mortality vs Incidence
+bowelcancer_incidence_mortality <- read.csv("bowel_cancer_incidence_mortality.csv")
+bowelcancer_incidence_mortality
+
+# Load the CSV files for Bowel Cancer Deprivation vs Screening 
+bowelcancer_screening_deprivation <- read.csv("bowel_cancer_screening_deprivation.csv")
+bowelcancer_screening_deprivation
+
+# Load the CSV files for Bowel Cancer Screening vs Incidence
+
+bowelcancer_screening_incidence <- read.csv("bowel_cancer_screening_incidence.csv")
+bowelcancer_screening_incidence
+
+
+# Load the CSV files for Bowel Cancer Screening vs Mortality
+
+bowelcancer_screening_mortality <- read.csv("bowel_cancer_screening_mortality .csv")
+bowelcancer_screening_mortality
+
+# Load the CSV files for Bowel Cancer Screening + Deprivation on Incidence
+
+bowelcancer_screening_deprivation_incidence <- read.csv("bowelcancer_screening_deprivation_incidence.csv")
+bowelcancer_screening_deprivation_incidence
+
+# Load the CSV files for Bowel Cancer Screening + Deprivation on Mortality
+
+bowelcancer_screening_deprivation_mortality <- read.csv("bowel_cancer_screening_deprivation_mortality.csv")
+bowelcancer_screening_deprivation_mortality
+
+
+
+
+```
+
+
+## Data Processing to ensure uniformity across column names in datasets
+```{r}
+
+
+# Function to rename the columns in a dataset  
+rename_columns <- function(dataset, new_colnames) {  
+   
+   # Check if the number of new column names matches the number of columns in the dataset  
+   if (ncol(dataset) != length(new_colnames)) {  
+     stop("Error: The number of columns in the dataset does not match the provided column names.")  
+     # stop() halts execution and returns an error message if the column counts do not match  
+   }  
+   
+   # Assign the new column names to the dataset  
+   colnames(dataset) <- new_colnames  
+   
+   # Return the modified dataset with the updated column names  
+   return(dataset)  
+}  
+
+# Rename Columns for Each Bowel Cancer Dataset
+bowelcancer_incidence_deprivation <- rename_columns(
+  bowelcancer_incidence_deprivation,
+  c("Local Authority", "IMD Deprivation Score (2019)", "Incidence of Bowel Cancer (SIR) per 100 (2015-2019)")
+)
+
+bowelcancer_mortality_deprivation <- rename_columns(
+  bowelcancer_mortality_deprivation,
+  c("Local Authority", "IMD Deprivation Score (2019)", "Bowel Cancer Mortality Rate per 100,000 (2021-2023)")
+)
+
+bowelcancer_incidence_mortality <- rename_columns(
+  bowelcancer_incidence_mortality,
+  c("Local Authority", "Incidence of Bowel Cancer (SIR) per 100 (2015-2019)", "Bowel Cancer Mortality Rate per 100,000 (2021-2023)")
+)
+
+
+bowelcancer_screening_deprivation <- rename_columns(
+  bowelcancer_screening_deprivation,
+  c("Local Authority", "IMD Deprivation Score (2019)","Bowel Cancer Screening Coverage (2023) (%)")
+)
+
+
+bowelcancer_screening_incidence <- rename_columns(
+  bowelcancer_screening_incidence,
+  c("Local Authority", "Bowel Cancer Screening Coverage (2023) (%)", "Incidence of Bowel Cancer (SIR) per 100 (2015-2019)")
+)
+
+bowelcancer_screening_deprivation_incidence <- rename_columns(
+  bowelcancer_screening_deprivation_incidence,
+  c("Local Authority", "Bowel Cancer Screening Coverage (2023) (%)", "Incidence of Bowel Cancer (SIR) per 100 (2015-2019)","IMD Deprivation Score (2019)" )
+)
+
+bowelcancer_screening_mortality <- rename_columns(
+  bowelcancer_screening_mortality,
+  c("Local Authority", "Bowel Cancer Screening Coverage (2023) (%)", "Bowel Cancer Mortality Rate per 100,000 (2021-2023)")
+)
+
+bowelcancer_screening_deprivation_mortality <- rename_columns(
+  bowelcancer_screening_deprivation_mortality,
+  c("Local Authority", "Bowel Cancer Screening Coverage (2023) (%)", "Bowel Cancer Mortality Rate per 100,000 (2021-2023)","IMD Deprivation Score (2019)" )
+)
+
+
+# Display the Processed Datasets
+bowelcancer_incidence_deprivation
+bowelcancer_mortality_deprivation
+bowelcancer_incidence_mortality
+bowelcancer_screening_deprivation
+bowelcancer_screening_incidence
+bowelcancer_screening_deprivation_incidence
+bowelcancer_screening_mortality
+bowelcancer_screening_deprivation_mortality 
+
+
+```
+
+# 2. Bowel Cancer Incidence and Deprivation Analysis
+
+## Fit and Plot Linear Regression Model for Bowel Cancer Incidence and Deprivation 
+```{r}
+# Fit the linear regression model to predict Bowel Cancer Incidence based on IMD Deprivation Score
+lm_bowel_cancer_incidence_vs_imd <- lm(
+  `Incidence of Bowel Cancer (SIR) per 100 (2015-2019)` ~ `IMD Deprivation Score (2019)`,
+  data = bowelcancer_incidence_deprivation
+)
+
+# Summarise the linear regression model
+summary(lm_bowel_cancer_incidence_vs_imd)
+
+# Plot the data points and the regression line
+plot(
+  bowelcancer_incidence_deprivation$`IMD Deprivation Score (2019)`,
+  bowelcancer_incidence_deprivation$`Incidence of Bowel Cancer (SIR) per 100 (2015-2019)`,
+  xlab = "IMD Deprivation Score (2019)",  # Add the X-axis label
+  ylab = "Incidence of Bowel Cancer (SIR) per 100 (2015-2019)",  # Add the Y-axis label
+  main = "Linear Regression of Bowel Cancer Incidence vs IMD Deprivation",  # Add plot title
+  pch = 19,  # Add solid dots for the data points
+  col = rgb(0, 0, 1, 0.6),  # Make the dots blue with 60% opacity
+  xlim = c(
+    min(bowelcancer_incidence_deprivation$`IMD Deprivation Score (2019)`),
+    max(bowelcancer_incidence_deprivation$`IMD Deprivation Score (2019)`) * 1.1
+  )  # Extend the x-axis to fit all the points
+)
+
+# Add a red regression line to the model
+abline(lm_bowel_cancer_incidence_vs_imd, col = "red")
+
+
+# Add labels for each Local Authority to identify the data points
+text(
+  bowelcancer_incidence_deprivation$`IMD Deprivation Score (2019)`,  
+   bowelcancer_incidence_deprivation$`Incidence of Bowel Cancer (SIR) per 100 (2015-2019)`,  
+  labels =  bowelcancer_incidence_deprivation$`Local Authority`,  
+  pos = 4,  
+  cex = 0.6,  
+  col = "black"  
+)
+
+
+
+
+```
+## Bowel Cancer Incidence vs Deprivation Linear Regression Diagnosis
+```{r}
+# Set layout for 2x2 grid of diagnostic plots
+par(mfrow = c(2, 2)) 
+
+# Create the 4 diagnostic plots for the Bowel Cancer Incidence vs Deprivation model
+plot(lm_bowel_cancer_incidence_vs_imd)
+
+# Calculate Cook's Distance for the Bowel Cancer Incidence model
+cooksd <- cooks.distance(lm_bowel_cancer_incidence_vs_imd)
+
+# Plot Cook's Distance
+plot(
+  cooksd,
+  main = "Cook's Distance for Bowel Cancer Incidence vs Deprivation",
+  ylab = "Cook's Distance",
+  type = "h",          # Use vertical lines for Cook's Distance
+  col = "red",         # Make the lines red
+  lwd = 2              # Adjust the line width
+)
+
+# Add labels for each Local Authority
+text(
+  x = 1:length(cooksd), 
+  y = cooksd, 
+  labels = bowelcancer_incidence_deprivation$`Local Authority`,  # Use Local Authority names
+  cex = 0.7,             # Adjust text size for readability
+  pos = 4,               # Position labels to the right of each point
+  col = "blue"           # Set label colour to blue
+)
+
+# Add a threshold line for Cook's Distance (4/n rule)
+threshold <- 4 / length(cooksd)  # Common threshold is 4/n
+abline(h = threshold, col = "purple", lty = 2)  # Dashed purple line for threshold
+
+
+```
+# 3. Bowel Cancer Mortality Rate and Deprivation Analysis
+
+## Fit and Plot Linear Regression Model for Bowel Cancer Mortality Rate and Deprivation 
+```{r}
+
+# Fit the linear regression model to predict Bowel Cancer Mortality based on IMD Deprivation Score
+lm_bowel_cancer_mortality_vs_imd <- lm(
+  `Bowel Cancer Mortality Rate per 100,000 (2021-2023)` ~ `IMD Deprivation Score (2019)`,
+  data = bowelcancer_mortality_deprivation
+)
+
+# Summarise the linear regression model
+summary(lm_bowel_cancer_mortality_vs_imd)
+
+# Plot the data points and the regression line
+plot(
+  bowelcancer_mortality_deprivation$`IMD Deprivation Score (2019)`,
+  bowelcancer_mortality_deprivation$`Bowel Cancer Mortality Rate per 100,000 (2021-2023)`,
+  xlab = "IMD Deprivation Score (2019)",  # Add the X-axis label
+  ylab = "Bowel Cancer Mortality Rate per 100,000 (2021-2023)",  # Add the Y-axis label
+  main = "Linear Regression of Bowel Cancer Mortality vs IMD Deprivation",  # Add plot title
+  pch = 19,  # Solid dots for the data points
+  col = rgb(0, 0, 1, 0.6),  # Blue dots with 60% opacity
+  xlim = c(
+    min(bowelcancer_mortality_deprivation$`IMD Deprivation Score (2019)`),
+    max(bowelcancer_mortality_deprivation$`IMD Deprivation Score (2019)`) * 1.1
+  )  # Extend the x-axis to fit all the points
+)
+
+# Add a red regression line to the model
+abline(lm_bowel_cancer_mortality_vs_imd, col = "red")
+
+# Add labels for each Local Authority to identify the data points
+text(
+  bowelcancer_mortality_deprivation$`IMD Deprivation Score (2019)`,  # Extract the X-axis coordinates
+  bowelcancer_mortality_deprivation$`Bowel Cancer Mortality Rate per 100,000 (2021-2023)`,  # Extract the Y-axis coordinates
+  labels = bowelcancer_mortality_deprivation$`Local Authority`,  # Add the Local Authority names as labels
+  pos = 4,  # Position the labels to the right of each point
+  cex = 0.6,  # Adjust text size for readability
+  col = "black"  # Set the text color to black for the labels
+)
+
+
+```
+
+## Bowel Cancer Mortality Rate vs Deprivation Linear Regression Diagnostics
+
+```{r}
+# Set layout for 2x2 grid of diagnostic plots
+par(mfrow = c(2, 2)) 
+
+# Create the 4 diagnostic plots for the Bowel Cancer Mortality vs Deprivation model
+plot(lm_bowel_cancer_mortality_vs_imd)
+
+# Calculate Cook's Distance for the Bowel Cancer Mortality model
+cooksd <- cooks.distance(lm_bowel_cancer_mortality_vs_imd)
+
+# Plot Cook's Distance
+plot(
+  cooksd,
+  main = "Cook's Distance for Bowel Cancer Mortality vs Deprivation",
+  ylab = "Cook's Distance",
+  type = "h",          # Use vertical lines for Cook's Distance
+  col = "red",         # Make the lines red
+  lwd = 2              # Adjust the line width
+)
+
+# Add labels for each Local Authority
+text(
+  x = 1:length(cooksd), 
+  y = cooksd, 
+  labels = bowelcancer_mortality_deprivation$`Local Authority`,  # Use Local Authority names
+  cex = 0.7,             # Adjust text size for readability
+  pos = 4,               # Position labels to the right of each point
+  col = "blue"           # Set label colour to blue
+)
+
+# Add a threshold line for Cook's Distance (4/n rule)
+threshold <- 4 / length(cooksd)  # Common threshold is 4/n
+abline(h = threshold, col = "purple", lty = 2)  # Dashed purple line for threshold
+
+
+```
+
+
+# 4. Bowel Cancer (SIR) and Mortality Rate Analysis
+
+## Fit and Plot Linear Regression Model for Bowel Cancer Incidence and Mortality Rate
+```{r}
+## Fit the linear regression model to predict Bowel Cancer Mortality based on Incidence
+lm_bowel_cancer_incidence_vs_mortality <- lm(
+  `Bowel Cancer Mortality Rate per 100,000 (2021-2023)` ~ `Incidence of Bowel Cancer (SIR) per 100 (2015-2019)`,
+  data = bowelcancer_incidence_mortality
+)
+
+# Summarise the linear regression model
+summary(lm_bowel_cancer_incidence_vs_mortality)
+
+# Plot the data points and the regression line
+plot(
+  bowelcancer_incidence_mortality$`Incidence of Bowel Cancer (SIR) per 100 (2015-2019)`,
+  bowelcancer_incidence_mortality$`Bowel Cancer Mortality Rate per 100,000 (2021-2023)`,
+  xlab = "Incidence of Bowel Cancer (SIR) per 100 (2015-2019)",  # X-axis label
+  ylab = "Bowel Cancer Mortality Rate per 100,000 (2021-2023)",  # Y-axis label
+  main = "Linear Regression of Bowel Cancer Mortality vs Incidence",  # Plot title
+  pch = 19,  # Solid dots for the data points
+  col = rgb(0, 0, 1, 0.6),  # Blue dots with 60% opacity
+  xlim = c(
+    min(bowelcancer_incidence_mortality$`Incidence of Bowel Cancer (SIR) per 100 (2015-2019)`),
+    max(bowelcancer_incidence_mortality$`Incidence of Bowel Cancer (SIR) per 100 (2015-2019)`) * 1.1
+  )  # Extend the x-axis to fit all the points
+)
+
+# Add a red regression line to the model
+abline(lm_bowel_cancer_incidence_vs_mortality, col = "red")
+
+# Add labels for each Local Authority to identify the data points
+text(
+  bowelcancer_incidence_mortality$`Incidence of Bowel Cancer (SIR) per 100 (2015-2019)`,  
+  bowelcancer_incidence_mortality$`Bowel Cancer Mortality Rate per 100,000 (2021-2023)`,  
+  labels = bowelcancer_incidence_mortality$`Local Authority`,  
+  pos = 4,  
+  cex = 0.6,  
+  col = "black"  
+)
+
+```
+
+## Bowel Cancer Mortality Rate vs Incidence Linear Regression Diagnostics
+```{r}
+# Set layout for 2x2 grid of diagnostic plots
+par(mfrow = c(2, 2)) 
+
+# Create the 4 diagnostic plots for the Bowel Cancer Incidence and Mortality model
+plot(lm_bowel_cancer_incidence_vs_mortality)
+
+# Calculate Cook's Distance for the Bowel Cancer Incidence and Mortality model
+cooksd <- cooks.distance(lm_bowel_cancer_incidence_vs_mortality)
+
+# Compute the threshold for Cook's Distance (4/n rule)
+threshold <- 4 / length(cooksd)  # Common threshold is 4/n
+
+# Plot Cook's Distance with an extended y-axis limit
+plot(
+  cooksd,
+  main = "Cook's Distance for Bowel Cancer Incidence vs Mortality",
+  ylab = "Cook's Distance",
+  type = "h",          # Use vertical lines for Cook's Distance
+  col = "red",         # Make the lines red
+  lwd = 2,             # Adjust the line width
+  ylim = c(0, max(cooksd, threshold) * 1.2)  # Extend y-axis to fit the threshold line
+)
+
+# Add labels for each Local Authority
+text(
+  x = 1:length(cooksd), 
+  y = cooksd, 
+  labels = bowelcancer_incidence_mortality$`Local Authority`,  # Use Local Authority names
+  cex = 0.7,             # Adjust text size for readability
+  pos = 4,               # Position labels to the right of each point
+  col = "blue"           # Set label colour to blue
+)
+
+# Add the threshold line for Cook's Distance
+abline(h = threshold, col = "purple", lty = 2)  # Dashed purple line for threshold
+
+```
+
+# 5. Bowel Cancer Screening and Deprivation Analysis
+
+## Fit and Plot Linear Regression Model for Bowel Cancer Screening and Deprivation
+
+```{r}
+## Fit the linear regression model to predict Bowel Cancer Mortality based on Incidence
+lm_bowel_cancer_screening_vs_imd <- lm(
+  `Bowel Cancer Screening Coverage (2023) (%)` ~ `IMD Deprivation Score (2019)`,
+  data = bowelcancer_screening_deprivation
+)
+
+# Summarise the linear regression model
+summary(lm_bowel_cancer_screening_vs_imd)
+
+# Plot the data points and the regression line
+plot(
+ bowelcancer_screening_deprivation$`IMD Deprivation Score (2019)`,
+ bowelcancer_screening_deprivation$`Bowel Cancer Screening Coverage (2023) (%)`,
+  xlab = "IMD Deprivation Score (2019)",  # X-axis label
+  ylab = "Bowel Cancer Screening Coverage (2023) (%)",  # Y-axis label
+  main = "Linear Regression of Bowel Cancer Screening Coverage vs IMD Deprivation",  # Plot title
+  pch = 19,  # Solid dots for the data points
+  col = rgb(0, 0, 1, 0.6),  # Blue dots with 60% opacity
+  xlim = c(
+    min( bowelcancer_screening_deprivation$`IMD Deprivation Score (2019)`),
+    max( bowelcancer_screening_deprivation$`IMD Deprivation Score (2019)`) * 1.1
+  )  # Extend the x-axis to fit all the points
+)
+
+# Add a red regression line to the model
+abline(lm_bowel_cancer_screening_vs_imd, col = "red")
+
+# Add labels for each Local Authority to identify the data points
+text(
+  bowelcancer_screening_deprivation$`IMD Deprivation Score (2019)`,  # X-axis coordinates
+  bowelcancer_screening_deprivation$`Bowel Cancer Screening Coverage (2023) (%)`,  # Y-axis coordinates
+  labels = bowelcancer_screening_deprivation$`Local Authority`,  # Local Authority names
+  pos = 4,  # Position labels to the right of each point
+  cex = 0.6,  # Adjust text size for readability
+  col = "black"  # Set the text color to black for the labels
+)
+
+```
+
+## Bowel Cancer Screening Coverage vs Deprivation Linear Regression Diagnostics
+
+```{r}
+# Set layout for 2x2 grid of diagnostic plots
+par(mfrow = c(2, 2))          # Arrange plots in a 2x2 grid
+
+# Create the 4 diagnostic plots for the Bowel Cancer Screening vs Deprivation model
+plot(lm_bowel_cancer_screening_vs_imd)
+
+# Calculate Cook's Distance for the Bowel Cancer Screening Coverage and Deprivation model
+cooksd <- cooks.distance(lm_bowel_cancer_screening_vs_imd)
+
+# Compute the threshold for Cook's Distance (4/n rule)
+threshold <- 4 / length(cooksd)  # Common threshold is 4/n
+
+# Plot Cook's Distance with an extended y-axis limit
+plot(
+  cooksd,
+  main = "Cook's Distance for Bowel Cancer Screening Coverage vs Deprivation",
+  ylab = "Cook's Distance",
+  type = "h",          # Use vertical lines for Cook's Distance
+  col = "red",         # Make the lines red
+  lwd = 2,             # Adjust the line width
+  ylim = c(0, max(cooksd, threshold) * 1.2)  # Extend y-axis to fit the threshold line
+)
+
+# Add labels for each Local Authority
+text(
+  x = 1:length(cooksd), 
+  y = cooksd, 
+  labels = bowelcancer_screening_deprivation$`Local Authority`,  # Use Local Authority names
+  cex = 0.7,             # Adjust text size for readability
+  pos = 4,               # Position labels to the right of each point
+  col = "blue"           # Set label colour to blue
+)
+
+# Add the threshold line for Cook's Distance
+abline(h = threshold, col = "purple", lty = 2)  # Dashed purple line for threshold
+
+```
+
+## Sensitivity Analysis without Burnley
+```{r}
+# Filter out Burnley from the dataset to create a filtered dataset
+filtered_bowel_screening_deprivation <- subset(
+  bowelcancer_screening_deprivation,
+  `Local Authority` != "Burnley"
+)
+
+# Fit the linear regression model on the filtered dataset
+lm_bowel_screening_vs_imd_filtered <- lm(
+  `Bowel Cancer Screening Coverage (2023) (%)` ~ `IMD Deprivation Score (2019)`,
+  data = filtered_bowel_screening_deprivation
+)
+
+# Summarise the linear regression model
+summary(lm_bowel_screening_vs_imd_filtered)
+
+# Plot the data points and the regression line
+plot(
+  filtered_bowel_screening_deprivation$`IMD Deprivation Score (2019)`,
+  filtered_bowel_screening_deprivation$`Bowel Cancer Screening Coverage (2023) (%)`,
+  xlab = "IMD Deprivation Score (2019)",  # X-axis label
+  ylab = "Bowel Cancer Screening Coverage (2023) (%)",  # Y-axis label
+  main = "Bowel Cancer Screening vs IMD Deprivation (Excluding Burnley)",  # Plot title
+  pch = 19,  # Solid dots for the data points
+  col = rgb(0, 0, 1, 0.6),  # Blue dots with 60% opacity
+  xlim = c(
+    min(filtered_bowel_screening_deprivation$`IMD Deprivation Score (2019)`),
+    max(filtered_bowel_screening_deprivation$`IMD Deprivation Score (2019)`) * 1.1
+  )  # Extend the x-axis to fit all the points
+)
+
+# Add the regression line
+abline(lm_bowel_screening_vs_imd_filtered, col = "red")
+
+
+# Add labels for each Local Authority to the plot
+text(
+  filtered_bowel_screening_deprivation$`IMD Deprivation Score (2019)`,
+  filtered_bowel_screening_deprivation$`Bowel Cancer Screening Coverage (2023) (%)`,
+  labels = filtered_bowel_screening_deprivation$`Local Authority`,
+  pos = 4,  # Position the text to the right of the data points
+  cex = 0.6,  # Adjust the text size
+  col = "black"  # Colour of the labels
+)
+
+
+```
+
+
+
+
+# 6. Bowel Cancer Screening and Incidence Analysis
+
+## Fit and Plot Linear Regression Model for Bowel Cancer Screening and Incidence
+```{r}
+# Fit linear regression model
+lm_screening_vs_incidence <- lm(
+  `Incidence of Bowel Cancer (SIR) per 100 (2015-2019)` ~ `Bowel Cancer Screening Coverage (2023) (%)`,
+  data = bowelcancer_screening_incidence
+)
+
+# Summary of model
+summary(lm_screening_vs_incidence)
+
+# Scatterplot of the linear regression model 
+plot(
+  bowelcancer_screening_incidence$`Bowel Cancer Screening Coverage (2023) (%)`,
+  bowelcancer_screening_incidence$`Incidence of Bowel Cancer (SIR) per 100 (2015-2019)`,
+  xlab = "Bowel Cancer Screening Coverage (2023) (%)",
+  ylab = "Bowel Cancer Incidence (SIR) per 100 (2015–2019)",
+  main = "Regression: Incidence vs Screening Coverage",
+  pch = 19,
+  col = rgb(0, 0, 1, 0.6)
+)
+
+# Add regression line
+abline(lm_screening_vs_incidence, col = "red")
+
+
+# Add local authority labels
+text(
+  bowelcancer_screening_incidence$`Bowel Cancer Screening Coverage (2023) (%)`,
+  bowelcancer_screening_incidence$`Incidence of Bowel Cancer (SIR) per 100 (2015-2019)`,
+  labels = bowelcancer_screening_incidence$`Local Authority`,
+  pos = 4,
+  cex = 0.6,
+  col = "black"
+)
+```
+
+## Bowel Cancer Screening Coverage vs Incidence Linear Regression Diagnostics
+```{r}
+
+# Set layout for 2x2 grid of diagnostic plots
+par(mfrow = c(2, 2)) 
+
+# Create the 4 diagnostic plots for the Screening vs Incidence model
+plot(lm_screening_vs_incidence)
+
+
+# Calculate Cook's Distance for the model
+cooksd <- cooks.distance(lm_screening_vs_incidence)
+
+# Compute the threshold for Cook's Distance (4/n rule)
+threshold <- 4 / length(cooksd)  # Common threshold is 4/n
+
+# Plot Cook's Distance with an extended y-axis limit
+plot(
+  cooksd,
+  type = "h",           # Use vertical lines for Cook's Distance
+  col = "red",          # Make the lines red
+  lwd = 2,              # Line width
+  ylim = c(0, max(cooksd, threshold) * 1.2),  # Extend y-axis to fit the threshold line
+  main = "Cook's Distance: Screening vs Incidence",  # Plot title
+  ylab = "Cook's Distance"  # Y-axis label
+)
+
+# Add labels for each Local Authority
+text(
+  x = 1:length(cooksd), 
+  y = cooksd, 
+  labels = bowelcancer_screening_incidence$`Local Authority`,  # Use Local Authority names
+  cex = 0.7,             # Adjust text size for readability
+  pos = 4,               # Position labels to the right of each point
+  col = "blue"           # Set label colour to blue
+)
+
+# Add the threshold line for Cook's Distance
+abline(h = threshold, col = "purple", lty = 2)  # Dashed purple line for threshold
+
+
+```
+
+
+# 7. Bowel Cancer Screening, Deprivation and Incidence Analysis
+
+## Fit Multiple Linear Regression Regression Model with interaction term of deprivation and bowel cancer screening coverage on  Incidence
+
+```{r}
+# Fit the multiple regression model with interaction between deprivation and screening
+lm_incidence_deprivation_screening_interaction <- lm(
+  `Incidence of Bowel Cancer (SIR) per 100 (2015-2019)` ~ 
+    `IMD Deprivation Score (2019)` * `Bowel Cancer Screening Coverage (2023) (%)`,
+  data = bowelcancer_screening_deprivation_incidence
+)
+
+# Summarise the model
+summary(lm_incidence_deprivation_screening_interaction)
+```
+
+## Check for Multicollinarity with VIF values for this model 
+
+```{r}
+
+# Calculate VIF
+vif(lm_incidence_deprivation_screening_interaction)  # Replace lm_bowel with your model name if different
+```
+
+## As the VIF values are above 10, centre the variables and refit the multiple linear regression model 
+```{r}
+# Centre the IMD Deprivation Score and Screening Coverage variables
+bowelcancer_screening_deprivation_incidence$IMD_centered <- scale(
+  bowelcancer_screening_deprivation_incidence$`IMD Deprivation Score (2019)`, 
+  center = TRUE, scale = FALSE
+)
+
+bowelcancer_screening_deprivation_incidence$Screening_centered <- scale(
+  bowelcancer_screening_deprivation_incidence$`Bowel Cancer Screening Coverage (2023) (%)`, 
+  center = TRUE, scale = FALSE
+)
+
+# Refit the model using centred variables
+lm_incidence_deprivation_screening_centered <- lm(
+  `Incidence of Bowel Cancer (SIR) per 100 (2015-2019)` ~ 
+    IMD_centered * Screening_centered,
+  data = bowelcancer_screening_deprivation_incidence
+)
+
+# Summarise the centred model
+summary(lm_incidence_deprivation_screening_centered)
+```
+
+## Check VIFs of centred model
+```{r}
+
+# Check VIFs
+vif(lm_incidence_deprivation_screening_centered)
+
+```
+
+
+
+## Bowel Cancer Screening Coverage, Deprivation Bowel Cancer Incidence  Regression Diagnostics
+
+```{r}
+# Set layout for 2x2 grid of diagnostic plots
+par(mfrow = c(2, 2)) 
+
+# Create the 4 diagnostic plots for the Bowel Cancer Screening, Deprivation, and Mortality model
+plot(lm_incidence_deprivation_screening_centered)
+
+# Calculate Cook's Distance for the Bowel Cancer Screening, Deprivation, and Mortality model
+cooksd <- cooks.distance(lm_incidence_deprivation_screening_centered)
+
+# Compute the threshold for Cook's Distance (4/n rule)
+threshold <- 4 / length(cooksd)  # Common threshold is 4/n
+
+# Plot Cook's Distance with an extended y-axis limit
+plot(
+  cooksd,
+  main = "Cook's Distance for Bowel Cancer Screening Coverage, Deprivation and Mortality",  # Plot title
+  ylab = "Cook's Distance",  # Y-axis label
+  type = "h",               # Use vertical lines for Cook's Distance
+  col = "red",              # Make the lines red
+  lwd = 2,                  # Line width
+  ylim = c(0, max(cooksd, threshold) * 1.2)  # Extend y-axis to fit the threshold line
+)
+
+# Add labels for each Local Authority
+text(
+  x = 1:length(cooksd), 
+  y = cooksd, 
+  labels = bowelcancer_screening_deprivation_incidence$`Local Authority`,  # Use Local Authority names
+  cex = 0.7,                 # Adjust text size for readability
+  pos = 4,                   # Position labels to the right of each point
+  col = "blue"               # Set label colour to blue
+)
+
+# Add the threshold line for Cook's Distance
+abline(h = threshold, col = "purple", lty = 2)  # Dashed purple line for threshold
+
+```
+
+## Sensitivity Analysis excluding Burnley
+```{r}
+# Create a filtered dataset removing Burnley
+filtered_bowel_incidence_multiple_regression_model <- subset(
+  bowelcancer_screening_deprivation_incidence,
+  `Local Authority` != "Burnley"
+)
+
+# Re-center the predictors in the filtered dataset
+filtered_bowel_incidence_multiple_regression_model$IMD_centered <- scale(
+  filtered_bowel_incidence_multiple_regression_model$`IMD Deprivation Score (2019)`,
+  center = TRUE,
+  scale = FALSE  # Only centre, no scaling
+)
+
+filtered_bowel_incidence_multiple_regression_model$Screening_centered <- scale(
+  filtered_bowel_incidence_multiple_regression_model$`Bowel Cancer Screening Coverage (2023) (%)`,
+  center = TRUE,
+  scale = FALSE  # Only centre, no scaling
+)
+
+# Refit the multiple linear regression model using the filtered data
+lm_bowel_incidence_multiple_regression_model <- lm(
+  `Incidence of Bowel Cancer (SIR) per 100 (2015-2019)` ~
+    IMD_centered * Screening_centered,
+  data = filtered_bowel_incidence_multiple_regression_model
+)
+
+# View the model summary
+summary(lm_bowel_incidence_multiple_regression_model)
+
+# Check for multicollinearity using VIFs
+vif(lm_bowel_incidence_multiple_regression_model)
+
+
+```
+
+# 8. Bowel Cancer Screening and Mortality Analysis
+
+## Fit and Plot Linear Regression Model for Bowel Cancer Screening and Mortality
+```{r}
+# Fit the linear regression model to predict Bowel Cancer Mortality from Screening Coverage
+lm_bowel_mortality_vs_screening <- lm(
+  `Bowel Cancer Mortality Rate per 100,000 (2021-2023)` ~ `Bowel Cancer Screening Coverage (2023) (%)`,
+  data = bowelcancer_screening_mortality
+)
+
+# Summarise the linear regression model
+summary(lm_bowel_mortality_vs_screening)
+
+# Plot the data points and the regression line
+plot(
+  bowelcancer_screening_mortality$`Bowel Cancer Screening Coverage (2023) (%)`,
+  bowelcancer_screening_mortality$`Bowel Cancer Mortality Rate per 100,000 (2021-2023)`,
+  xlab = "Bowel Cancer Screening Coverage (2023) (%)",  # X-axis label
+  ylab = "Bowel Cancer Mortality Rate per 100,000 (2021-2023)",  # Y-axis label
+  main = "Linear Regression of Bowel Cancer Mortality vs Screening Coverage",  # Plot title
+  pch = 19,  # Solid dots for the data points
+  col = rgb(0, 0, 1, 0.6),  # Blue dots with 60% opacity
+  xlim = c(
+    min(bowelcancer_screening_mortality$`Bowel Cancer Screening Coverage (2023) (%)`),
+    max(bowelcancer_screening_mortality$`Bowel Cancer Screening Coverage (2023) (%)`) * 1.05
+  )  # Extend the x-axis to fit all the points
+)
+
+# Add the regression line in red
+abline(lm_bowel_mortality_vs_screening, col = "red")
+
+# Add Local Authority labels
+text(
+  bowelcancer_screening_mortality$`Bowel Cancer Screening Coverage (2023) (%)`,
+  bowelcancer_screening_mortality$`Bowel Cancer Mortality Rate per 100,000 (2021-2023)`,
+  labels = bowelcancer_screening_mortality$`Local Authority`,
+  pos = 4,  # Position labels to the right of each point
+  cex = 0.6,  # Adjust text size for readability
+  col = "black"  # Set the text colour to black for the labels
+)
+
+
+```
+
+## Diagnostics for Bowel Cancer Screening and Mortality
+
+```{r}
+
+# Set layout for 2x2 grid of diagnostic plots
+par(mfrow = c(2, 2))  # Set plotting area to 2x2
+
+# Create the 4 diagnostic plots for the Bowel Cancer Mortality vs Screening model
+plot(lm_bowel_mortality_vs_screening)
+
+# Calculate Cook's Distance for the Bowel Cancer Mortality vs Screening model
+cooksd <- cooks.distance(lm_bowel_mortality_vs_screening)
+
+# Compute the threshold for Cook's Distance (4/n rule)
+threshold <- 4 / length(cooksd)  # Common threshold is 4/n
+
+# Plot Cook's Distance with an extended y-axis limit
+plot(
+  cooksd,
+  type = "h",               # Use vertical lines for Cook's Distance
+  col = "red",              # Make the lines red
+  lwd = 2,                  # Adjust the line width
+  ylim = c(0, max(cooksd, threshold) * 1.2),  # Extend y-axis to fit the threshold line
+  main = "Cook's Distance: Mortality vs Screening",  # Plot title
+  ylab = "Cook's Distance"  # Y-axis label
+)
+
+# Add labels for each Local Authority
+text(
+  x = 1:length(cooksd), 
+  y = cooksd, 
+  labels = bowelcancer_screening_mortality$`Local Authority`,  # Use Local Authority names
+  cex = 0.7,             # Adjust text size for readability
+  pos = 4,               # Position labels to the right of each point
+  col = "blue"           # Set label colour to blue
+)
+
+# Add the threshold line for Cook's Distance
+abline(h = threshold, col = "purple", lty = 2)  # Dashed purple line for threshold
+
+```
+
+# 9. Bowel Cancer Screening, Deprivation and Mortality Analysis
+
+## Fit Multiple Linear Regression Regression Model with interaction term of deprivation and bowel cancer screening coveage on mortality
+```{r}
+# Fit the multiple regression model with interaction between deprivation and screening
+lm_mortality_deprivation_screening_interaction <- lm(
+  `Bowel Cancer Mortality Rate per 100,000 (2021-2023)` ~
+    `IMD Deprivation Score (2019)` * `Bowel Cancer Screening Coverage (2023) (%)`,
+  data = bowelcancer_screening_deprivation_mortality
+)
+
+# Summarise the model
+summary(lm_mortality_deprivation_screening_interaction)
+
+```
+
+## Check for Multicollinarity with VIF values for this model 
+```{r}
+
+# Check for multicollinearity using Variance Inflation Factors (VIFs) 
+vif(lm_mortality_deprivation_screening_interaction)
+
+```
+
+## As the VIF values are above 10, centre the variables and refit the multiple linear regression model 
+```{r}
+
+# Centre the IMD Deprivation Score and Screening Coverage variables
+bowelcancer_screening_deprivation_mortality$IMD_centered <- scale(
+  bowelcancer_screening_deprivation_mortality$`IMD Deprivation Score (2019)`,
+  center = TRUE, scale = FALSE
+)
+
+bowelcancer_screening_deprivation_mortality$Screening_centered <- scale(
+  bowelcancer_screening_deprivation_mortality$`Bowel Cancer Screening Coverage (2023) (%)`,
+  center = TRUE, scale = FALSE
+)
+
+# Refit the model using centred variables
+lm_mortality_centered <- lm(
+  `Bowel Cancer Mortality Rate per 100,000 (2021-2023)` ~
+    IMD_centered * Screening_centered,
+  data = bowelcancer_screening_deprivation_mortality
+)
+
+# Summarise the centred model
+summary(lm_mortality_centered)
+
+# Check VIFs again in centred model
+vif(lm_mortality_centered)
+```
+
+## Plot the Bowel Cancer Screening Coverage, Deprivation Bowel Cancer Mortality  Regression 
+```{r}
+
+
+# Calculate the marginal effect of the 'Screening' variable (centered) on Bowel Cancer Mortality
+
+effect_screening <- Effect("Screening_centered", lm_mortality_centered)
+
+#  Convert this effect into a dataframe for easier plotting
+
+df_effect <- as.data.frame(effect_screening)
+
+# Plot the predicted relationship between Screening Coverage and Mortality 
+ggplot(df_effect, aes(x = Screening_centered, y = fit)) +  #
+  geom_line(color = "red", size = 1) +  # Add a red line showing the predicted fit
+  geom_ribbon(aes(ymin = lower, ymax = upper), fill = "grey70", alpha = 0.3) +  # Add a shaded confidence interval
+  labs(
+    title = "Predicted Bowel Cancer Mortality by Screening Coverage (adjusted for deprivation)",  # Title
+    x = "Screening Coverage (centered)",  # X-axis label
+    y = "Predicted Mortality Rate per 100,000"  # Y-axis label
+  ) +
+  theme_minimal(base_size = 13) + 
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold")  
+  )
+
+
+```
+
+
+
+## Bowel Cancer Screening Coverage, Deprivation Bowel Cancer Mortality  Regression Diagnostics
+```{r}
+# Set layout for 2x2 grid of the 4 diagnostic plots
+par(mfrow = c(2, 2)) 
+
+# Create the 4 diagnostic plots for linear regression model
+plot(lm_mortality_centered)
+
+# Calculate Cook's Distance
+cooksd <- cooks.distance(lm_mortality_centered)
+
+# Plot Cook's Distance
+plot(
+  cooksd,
+  main = "Cook's Distance for Mortality vs Deprivation × Screening",  # Plot title
+  ylab = "Cook's Distance",  # Y-axis label
+  type = "h",               # Use vertical lines for Cook's Distance
+  col = "red",              # Make the lines red
+  lwd = 2                   # Adjust the line width
+)
+
+# Add labels for each Local Authority
+text(
+  x = 1:length(cooksd), 
+  y = cooksd, 
+  labels = bowelcancer_screening_deprivation_mortality$`Local Authority`,  # Use Local Authority names
+  cex = 0.7,                 # Adjust text size for readability
+  pos = 4,                   # Position labels to the right of each point
+  col = "blue"               # Set label colour to blue
+)
+
+# Add a threshold line for Cook's Distance (4/n rule)
+threshold <- 4 / length(cooksd)  # Common threshold is 4/n
+abline(h = threshold, col = "purple", lty = 2)  # Dashed purple line for threshold
+
+```
+
+
+
+```
+

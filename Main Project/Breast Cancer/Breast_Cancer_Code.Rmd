@@ -1,0 +1,1103 @@
+---
+title: "Breast_Cancer_Code"
+output: html_document
+date: "2025-01-28"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 1. Set Up
+
+## Install and Load Packages
+```{r}
+
+library(tidyverse) # load tidyverse package to make graphs and format the data in tables
+library(car) # load car package for vifs to test for multicollinearity in multiple linear regressions
+library(ggeffects) # load ggeffects package to plot interaction effects in multiple linear regression models
+
+```
+
+## Load Data for the Breast Cancer Analysis from the Main Project Folder
+```{r}
+# Load the CSV files for Breast Cancer Incidence vs Deprivation
+breastcancer_incidence_deprivation <- read.csv("Breast_cancer_incidence_deprivation.csv")
+breastcancer_incidence_deprivation
+
+# Load the CSV files for Breast Cancer Mortality Rate vs Deprivation
+breastcancer_mortality_deprivation <- read.csv("Breast_cancer_mortality_deprivation.csv")
+breastcancer_mortality_deprivation 
+
+# Load the CSV files for Breast Cancer Mortality Rate vs Breast Cancer Incidence
+breastcancer_incidence_mortality  <- read.csv("breast_cancer_incidence_mortality.csv")
+breastcancer_incidence_mortality 
+
+# Load the CSV files for Breast Cancer Screening vs Deprivation
+breastcancer_screening_deprivation <- read.csv("breast_cancer_screening_deprivation.csv")
+breastcancer_screening_deprivation
+
+# Load the CSV files for Breast Cancer Screening vs Mortality
+breastcancer_screening_mortality <- read.csv("breast_cancer_screening_mortality .csv")
+breastcancer_screening_mortality
+
+# Load the CSV files for Breast Cancer Screening vs Incidence
+breastcancer_screening_incidence <- read.csv("breast_cancer_screening_incidence.csv")
+breastcancer_screening_incidence
+
+# Load the CSV files for Breast Cancer Screening vs Deprivation vs Breast Cancer Mortality Rate
+
+breastcancer_deprivation_screening_mortality <- read.csv("Breast_cancer_screening_deprivation_mortality.csv")
+breastcancer_deprivation_screening_mortality
+
+# Load the CSV files for Breast Cancer Screening vs Deprivation vs Breast Cancer Incidence Rate
+
+breastcancer_deprivation_screening_incidence <- read.csv("breastcancer_screening_deprivation_incidence.csv")
+breastcancer_deprivation_screening_incidence
+
+
+
+```
+
+
+## Data Processing to ensure uniformity across column names in datasets
+```{r}
+
+# Function to rename the columns in a dataset  
+rename_columns <- function(dataset, new_colnames) {  
+   
+   # Check if the number of new column names matches the number of columns in the dataset  
+   if (ncol(dataset) != length(new_colnames)) {  
+     stop("Error: The number of columns in the dataset does not match the provided column names.")  
+     # stop() halts execution and returns an error message if the column counts do not match  
+   }  
+   
+   # Assign the new column names to the dataset  
+   colnames(dataset) <- new_colnames  
+   
+   # Return the modified dataset with the updated column names  
+   return(dataset)  
+}  
+
+# Rename Columns for Each Dataset
+breastcancer_incidence_deprivation <- rename_columns(
+  breastcancer_incidence_deprivation,
+  c("Local Authority", "IMD Deprivation Score (2019)", "Incidence of Breast Cancer (SIR) per 100 (2015-2019)")
+)
+
+breastcancer_mortality_deprivation <- rename_columns(
+  breastcancer_mortality_deprivation,
+  c("Local Authority", "IMD Deprivation Score (2019)", "Breast Cancer Mortality Rate per 100,000 (2021-2023)")
+)
+
+breastcancer_incidence_mortality <- rename_columns(
+  breastcancer_incidence_mortality,
+  c("Local Authority", "Incidence of Breast Cancer (SIR) per 100 (2015-2019)", "Breast Cancer Mortality Rate per 100,000 (2021-2023)")
+)
+
+breastcancer_screening_deprivation <- rename_columns(
+  breastcancer_screening_deprivation,
+  c("Local Authority", "IMD Deprivation Score (2019)", "Breast Cancer Screening Coverage (2023)")
+)
+
+
+breastcancer_screening_mortality <- rename_columns(
+  breastcancer_screening_mortality,
+  c("Local Authority", "Breast Cancer Screening Coverage (2023)","Breast Cancer Mortality Rate per 100,000 (2021-2023)")
+)
+
+breastcancer_screening_incidence <- rename_columns(
+  breastcancer_screening_incidence,
+  c("Local Authority", "Breast Cancer Screening Coverage (2023)","Incidence of Breast Cancer (SIR) per 100 (2015-2019)")
+)
+
+
+breastcancer_deprivation_screening_mortality <- rename_columns(
+  breastcancer_deprivation_screening_mortality,
+  c("Local Authority", "IMD Deprivation Score (2019)","Breast Cancer Screening Coverage (2023)", "Breast Cancer Mortality Rate per 100,000 (2021-2023)")
+)
+
+breastcancer_deprivation_screening_incidence <- rename_columns(
+  breastcancer_deprivation_screening_incidence,
+  c("Local Authority", "IMD Deprivation Score (2019)","Breast Cancer Screening Coverage (2023)", "Incidence of Breast Cancer (SIR) per 100 (2015-2019)")
+)
+
+
+# Display the Processed Datasets
+breastcancer_incidence_deprivation
+breastcancer_mortality_deprivation
+breastcancer_incidence_mortality
+breastcancer_screening_deprivation
+breastcancer_screening_mortality
+breastcancer_deprivation_screening_mortality
+breastcancer_deprivation_screening_incidence
+
+
+
+```
+
+# 2. Breast Cancer Incidence and Deprivation Analysis
+
+## Fit and Plot Linear Regression Model for Breast Cancer Incidence and Deprivation 
+```{r}
+
+# Fit the linear regression model to predict Breast Cancer Incidence based on IMD Deprivation Score
+lm_breast_cancer_incidence_vs_imd <- lm(
+  `Incidence of Breast Cancer (SIR) per 100 (2015-2019)` ~ `IMD Deprivation Score (2019)`,
+  data = breastcancer_incidence_deprivation
+)
+
+# Summarise the linear regression model
+summary(lm_breast_cancer_incidence_vs_imd)
+
+# Plot the data points and the regression line
+plot(
+  breastcancer_incidence_deprivation$`IMD Deprivation Score (2019)`,
+  breastcancer_incidence_deprivation$`Incidence of Breast Cancer (SIR) per 100 (2015-2019)`,
+  xlab = "IMD Deprivation Score (2019)",  # Add the X-axis label
+  ylab = "Incidence of Breast Cancer (SIR) per 100 (2015-2019)",  # Add the Y-axis label
+  main = "Linear Regression of Breast Cancer Incidence vs IMD Deprivation",  # Add plot title
+  pch = 19,  # Add solid dots for the data points
+  col = rgb(0, 0, 1, 0.6),  # Make the dots blue with 60% opacity
+  xlim = c(
+    min(breastcancer_incidence_deprivation$`IMD Deprivation Score (2019)`),
+    max(breastcancer_incidence_deprivation$`IMD Deprivation Score (2019)`) * 1.1
+  )  # Extend the x-axis to fit all the points
+)
+
+# Add a red regression line to the model
+abline(lm_breast_cancer_incidence_vs_imd, col = "red")
+
+
+# Add labels for each Local Authority to identify the data points
+text(
+  breastcancer_incidence_deprivation$`IMD Deprivation Score (2019)`,  
+  breastcancer_incidence_deprivation$`Incidence of Breast Cancer (SIR) per 100 (2015-2019)`,  
+  labels = breastcancer_incidence_deprivation$`Local Authority`,  
+  pos = 4,  
+  cex = 0.6,  
+  col = "black"  
+)
+
+```
+
+## Breast Cancer Incidence vs Deprivation Linear Regression Diagnostics
+
+```{r}
+
+# Set layout for 2x2 grid of the 4 diagnostic plots
+par(mfrow = c(2, 2)) 
+
+# Create the 4 diagnostic plots for linear regression model
+plot(lm_breast_cancer_incidence_vs_imd)   
+
+# Calculate Cook's Distance
+cooksd <- cooks.distance(lm_breast_cancer_incidence_vs_imd)
+
+# Plot Cook's Distance
+plot(cooksd,
+     main = "Cook's Distance for Breast Cancer Incidence vs Deprivation",
+     ylab = "Cook's Distance",
+     type = "h",          # Use vertical lines for Cook's Distance
+     col = "red",         # Make the lines red
+     lwd = 2              # Adjust the line width 
+)
+
+# Add labels for each Local Authority
+text(x = 1:length(cooksd), 
+     y = cooksd, 
+     labels = breastcancer_incidence_deprivation$`Local Authority`,  # Use Local Authority names
+     cex = 0.7,             # Adjust text size for readability
+     pos = 4,               # Position labels to the right of each point
+     col = "blue"           # Set label colour to blue
+)
+
+# Add a threshold line for Cook's Distance (4/n rule)
+threshold <- 4 / length(cooksd)  # Common threshold is 4/n where n=12
+abline(h = threshold, col = "purple", lty = 2)  # Dashed purple line for threshold
+
+
+```
+
+# 3. Breast Cancer Mortality Rate and Deprivation Analysis
+
+## Fit and Plot Linear Regression Model for Breast Cancer Mortality Rate and Deprivation 
+```{r}
+# Fit the linear regression model to predict Breast Cancer Mortality based on IMD Deprivation Score
+lm_breast_cancer_mortality_vs_imd <- lm(
+  `Breast Cancer Mortality Rate per 100,000 (2021-2023)` ~ `IMD Deprivation Score (2019)`,
+  data = breastcancer_mortality_deprivation
+)
+
+# Summarise the linear regression model
+summary(lm_breast_cancer_mortality_vs_imd)
+
+# Plot the data points and the regression line
+plot(
+  breastcancer_mortality_deprivation$`IMD Deprivation Score (2019)`,
+  breastcancer_mortality_deprivation$`Breast Cancer Mortality Rate per 100,000 (2021-2023)`,
+  xlab = "IMD Deprivation Score (2019)",  # Add the X-axis label
+  ylab = "Breast Cancer Mortality Rate per 100,000 (2021-2023)",  # Add the Y-axis label
+  main = "Linear Regression of Breast Cancer Mortality vs IMD Deprivation",  # Add plot title
+  pch = 19,  # Solid dots for the data points
+  col = rgb(0, 0, 1, 0.6),  # Blue dots with 60% opacity
+  xlim = c(
+    min(breastcancer_mortality_deprivation$`IMD Deprivation Score (2019)`),
+    max(breastcancer_mortality_deprivation$`IMD Deprivation Score (2019)`) * 1.1
+  )  # Extend the x-axis to fit all the points
+)
+
+# Add a red regression line to the model
+abline(lm_breast_cancer_mortality_vs_imd, col = "red")
+
+# Add labels for each Local Authority to identify the data points
+text(
+   breastcancer_mortality_deprivation$`IMD Deprivation Score (2019)`,  
+   breastcancer_mortality_deprivation$`Breast Cancer Mortality Rate per 100,000 (2021-2023)`,  
+  labels =  breastcancer_mortality_deprivation$`Local Authority`,  
+  pos = 4,  
+  cex = 0.6,  
+  col = "black"  
+)
+
+
+
+
+```
+
+## Breast Cancer Mortality Rate vs Deprivation Linear Regression Diagnostics 
+```{r}
+# Set layout for 2x2 grid of diagnostic plots
+par(mfrow = c(2, 2)) 
+
+# Create the 4 diagnostic plots for the Breast Cancer Mortality model
+plot(lm_breast_cancer_mortality_vs_imd)   
+
+# Calculate Cook's Distance for the Breast Cancer Mortality model
+cooksd <- cooks.distance(lm_breast_cancer_mortality_vs_imd)
+
+# Plot Cook's Distance
+plot(cooksd,
+     main = "Cook's Distance for Breast Cancer Mortality vs Deprivation",
+     ylab = "Cook's Distance",
+     type = "h",          # Use vertical lines for Cook's Distance
+     col = "red",         # Make the lines red
+     lwd = 2              # Adjust the line width
+)
+
+# Add labels for each Local Authority
+text(x = 1:length(cooksd), 
+     y = cooksd, 
+     labels = breastcancer_mortality_deprivation$`Local Authority`,  # Use Local Authority names
+     cex = 0.7,             # Adjust text size for readability
+     pos = 4,               # Position labels to the right of each point
+     col = "blue"           # Set label colour to blue
+)
+
+# Add a threshold line for Cook's Distance (4/n rule)
+threshold <- 4 / length(cooksd)  # Common threshold is 4/n where n=12
+abline(h = threshold, col = "purple", lty = 2)  # Dashed purple line for threshold
+
+
+```
+
+## Quadratic Transformation and Comparison of Linear and Quadratic Regression Models
+```{r}
+# Fit the linear regression model with a quadratic term to address non-linearity
+lm_breast_cancer_mortality_vs_imd_quad <- lm(
+  `Breast Cancer Mortality Rate per 100,000 (2021-2023)` ~ 
+    `IMD Deprivation Score (2019)` + I(`IMD Deprivation Score (2019)`^2),
+  data = breastcancer_mortality_deprivation
+)
+
+# Summarise the model
+summary(lm_breast_cancer_mortality_vs_imd_quad)
+
+# Compare models with ANOVA to assess whether the quadratic term improves the model
+anova(lm_breast_cancer_mortality_vs_imd, lm_breast_cancer_mortality_vs_imd_quad)
+
+```
+
+
+## Conduct Sensitivity Analysis without Ribble Valley
+```{r}
+
+# Filter out Ribble Valley from the dataset
+breast_mortality_filtered <- subset(
+  breastcancer_mortality_deprivation,
+  `Local Authority` != "Ribble Valley"
+)
+
+# Fit the linear regression model on the filtered dataset
+lm_breast_cancer_mortality_filtered <- lm(
+  `Breast Cancer Mortality Rate per 100,000 (2021-2023)` ~ `IMD Deprivation Score (2019)`,
+  data = breast_mortality_filtered
+)
+
+# Summarise the filtered linear regression model
+summary(lm_breast_cancer_mortality_filtered)
+
+# Plot the data points and the regression line
+plot(
+  breast_mortality_filtered$`IMD Deprivation Score (2019)`,
+  breast_mortality_filtered$`Breast Cancer Mortality Rate per 100,000 (2021-2023)`,
+  xlab = "IMD Deprivation Score (2019)",
+  ylab = "Breast Cancer Mortality Rate per 100,000 (2021-2023)",
+  main = "Breast Cancer Mortality vs Deprivation (Excluding Ribble Valley)",
+  pch = 19,
+  col = rgb(0, 0, 1, 0.6)
+)
+
+# Add the regression line
+abline(lm_breast_cancer_mortality_filtered, col = "red")
+
+# Add Local authority lavels 
+text(
+  breast_mortality_filtered$`IMD Deprivation Score (2019)`,
+  breast_mortality_filtered$`Breast Cancer Mortality Rate per 100,000 (2021-2023)`,
+  labels = breast_mortality_filtered$`Local Authority`,
+  pos = 4,
+  cex = 0.6,
+  col = "black"
+)
+
+
+
+```
+
+
+# 4. Breast Cancer (SIR) and Mortality Rate Analysis
+
+## Fit and Plot Linear Regression Model for Breast Cancer Incidence and Mortality Rate
+```{r}
+# Fit the linear regression model to predict Breast Cancer Mortality based on Incidence
+lm_breast_cancer_incidence_vs_mortality <- lm(
+  `Breast Cancer Mortality Rate per 100,000 (2021-2023)` ~ `Incidence of Breast Cancer (SIR) per 100 (2015-2019)`,
+  data = breastcancer_incidence_mortality
+)
+
+# Summarise the linear regression model
+summary(lm_breast_cancer_incidence_vs_mortality)
+
+# Plot the data points and the regression line
+plot(
+  breastcancer_incidence_mortality$`Incidence of Breast Cancer (SIR) per 100 (2015-2019)`,
+  breastcancer_incidence_mortality$`Breast Cancer Mortality Rate per 100,000 (2021-2023)`,
+  xlab = "Incidence of Breast Cancer (SIR) per 100 (2015-2019)",  # X-axis label
+  ylab = "Breast Cancer Mortality Rate per 100,000 (2021-2023)",  # Y-axis label
+  main = "Linear Regression of Breast Cancer Mortality vs Incidence",  # Plot title
+  pch = 19,  # Solid dots for the data points
+  col = rgb(0, 0, 1, 0.6),  # Blue dots with 60% opacity
+  xlim = c(
+    min(breastcancer_incidence_mortality$`Incidence of Breast Cancer (SIR) per 100 (2015-2019)`),
+    max(breastcancer_incidence_mortality$`Incidence of Breast Cancer (SIR) per 100 (2015-2019)`) * 1.1
+  )  # Extend the x-axis to fit all the points
+)
+
+# Add a red regression line to the model
+abline(lm_breast_cancer_incidence_vs_mortality, col = "red")
+
+# Add labels for each Local Authority to identify the data points
+text(
+  breastcancer_incidence_mortality$`Incidence of Breast Cancer (SIR) per 100 (2015-2019)`,  
+  breastcancer_incidence_mortality$`Breast Cancer Mortality Rate per 100,000 (2021-2023)`,  
+  labels = breastcancer_incidence_mortality$`Local Authority`,  
+  pos = 4,  
+  cex = 0.6,  
+  col = "black"  
+)
+
+```
+## Breast Cancer Mortality Rate vs Incidence Linear Regression Diagnostics 
+```{r}
+# Set layout for 2x2 grid of diagnostic plots
+par(mfrow = c(2, 2)) 
+
+# Create the 4 diagnostic plots for the Breast Cancer Incidence and Mortality model
+plot(lm_breast_cancer_incidence_vs_mortality)   
+
+# Calculate Cook's Distance for the Breast Cancer Incidence and Mortality model
+cooksd <- cooks.distance(lm_breast_cancer_incidence_vs_mortality)
+
+# Plot Cook's Distance
+plot(cooksd,
+     main = "Cook's Distance for Breast Cancer Incidence vs Mortality",
+     ylab = "Cook's Distance",
+     type = "h",          # Use vertical lines for Cook's Distance
+     col = "red",         # Make the lines red
+     lwd = 2              # Adjust the line width
+)
+
+# Add labels for each Local Authority
+text(x = 1:length(cooksd), 
+     y = cooksd, 
+     labels = breastcancer_incidence_mortality$`Local Authority`,  # Use Local Authority names
+     cex = 0.7,             # Adjust text size for readability
+     pos = 4,               # Position labels to the right of each point
+     col = "blue"           # Set label colour to blue
+)
+
+# Add a threshold line for Cook's Distance (4/n rule)
+threshold <- 4 / length(cooksd)  # Common threshold is 4/n where n=12
+abline(h = threshold, col = "purple", lty = 2)  # Dashed purple line for threshold
+
+
+```
+# Conduct Sensitivity Analysis without Rossendale 
+```{r}
+# Filter out Rossendale from the dataset
+breast_incidence_mortality_filtered <- subset(
+  breastcancer_incidence_mortality,
+  `Local Authority` != "Rossendale"
+)
+
+# Fit the linear regression model on the filtered dataset
+lm_breast_incidence_mortality_filtered <- lm(
+  `Breast Cancer Mortality Rate per 100,000 (2021-2023)` ~ `Incidence of Breast Cancer (SIR) per 100 (2015-2019)`,
+  data = breast_incidence_mortality_filtered
+)
+
+# Summarise the filtered linear regression model
+summary(lm_breast_incidence_mortality_filtered)
+
+# Plot the data points and the regression line
+plot(
+  breast_incidence_mortality_filtered$`Incidence of Breast Cancer (SIR) per 100 (2015-2019)`,
+  breast_incidence_mortality_filtered$`Breast Cancer Mortality Rate per 100,000 (2021-2023)`,
+  xlab = "Incidence of Breast Cancer (SIR) per 100 (2015-2019)",  # X-axis label
+  ylab = "Breast Cancer Mortality Rate per 100,000 (2021-2023)",  # Y-axis label
+  main = "Linear Regression of Breast Cancer Mortality vs Incidence (Excluding Rossendale)",  # Plot title
+  pch = 19,  # Solid dots for the data points
+  col = rgb(0, 0, 1, 0.6)  # Blue dots with 60% opacity
+)
+
+# Add the regression line
+abline(lm_breast_incidence_mortality_filtered, col = "red")
+
+# Add Local authority labels
+text(
+  breast_incidence_mortality_filtered$`Incidence of Breast Cancer (SIR) per 100 (2015-2019)`,
+  breast_incidence_mortality_filtered$`Breast Cancer Mortality Rate per 100,000 (2021-2023)`,
+  labels = breast_incidence_mortality_filtered$`Local Authority`,
+  pos = 4,
+  cex = 0.6,
+  col = "black"
+)
+
+```
+
+
+
+# 5.  Breast Cancer Screening and Deprivation Analysis
+
+## Fit and Plot Linear Regression Model for Breast Cancer Screening and Deprivation
+```{r}
+# Fit the linear regression model to predict Breast Cancer Screening Coverage based on IMD Deprivation Score
+lm_breast_cancer_screening_vs_imd <- lm(
+  `Breast Cancer Screening Coverage (2023)` ~ `IMD Deprivation Score (2019)`,
+  data = breastcancer_screening_deprivation
+)
+
+# Summarise the linear regression model
+summary(lm_breast_cancer_screening_vs_imd)
+
+# Plot the data points and the regression line
+plot(
+  breastcancer_screening_deprivation$`IMD Deprivation Score (2019)`,
+  breastcancer_screening_deprivation$`Breast Cancer Screening Coverage (2023)`,
+  xlab = "IMD Deprivation Score (2019)",  # X-axis label
+  ylab = "Breast Cancer Screening Coverage (2023)",  # Y-axis label
+  main = "Linear Regression of Breast Cancer Screening Coverage vs IMD Deprivation",  # Plot title
+  pch = 19,  # Solid dots for the data points
+  col = rgb(0, 0, 1, 0.6),  # Blue dots with 60% opacity
+  xlim = c(
+    min(breastcancer_screening_deprivation$`IMD Deprivation Score (2019)`),
+    max(breastcancer_screening_deprivation$`IMD Deprivation Score (2019)`) * 1.1
+  )  # Extend the x-axis to fit all the points
+)
+
+# Add a red regression line to the model
+abline(lm_breast_cancer_screening_vs_imd, col = "red")
+
+# Add labels for each Local Authority to identify the data points
+text(
+ breastcancer_screening_deprivation$`IMD Deprivation Score (2019)`,  
+  breastcancer_screening_deprivation$`Breast Cancer Screening Coverage (2023)`,  
+  labels = breastcancer_screening_deprivation$`Local Authority`,  
+  pos = 4,  
+  cex = 0.6,  
+  col = "black"  
+)
+
+
+
+```
+
+## Breast Cancer Screening Coverage and Deprivation Regression Diagnostics 
+```{r}
+# Set layout for 2x2 grid of diagnostic plots
+par(mfrow = c(2, 2)) 
+
+# Create the 4 diagnostic plots for the Breast Cancer Screening vs Deprivation model
+plot(lm_breast_cancer_screening_vs_imd)   
+
+# Calculate Cook's Distance for the multiple linear regression model
+cooksd <- cooks.distance(lm_breast_cancer_screening_vs_imd)
+
+# Plot Cook's Distance
+plot(cooksd,
+     main = "Cook's Distance for Breast Cancer Screening vs Deprivation Model",
+     ylab = "Cook's Distance",
+     type = "h",          # Use vertical lines for Cook's Distance
+     col = "red",         # Make the lines red
+     lwd = 2              # Adjust the line width
+)
+
+# Add labels for each Local Authority
+text(x = 1:length(cooksd), 
+     y = cooksd, 
+     labels = breastcancer_screening_deprivation$`Local Authority`,  # Use Local Authority names
+     cex = 0.7,             # Adjust text size for readability
+     pos = 4,               # Position labels to the right of each point
+     col = "blue"           # Set label colour to blue
+)
+
+# Add a threshold line for Cook's Distance (4/n rule)
+threshold <- 4 / length(cooksd)  # Common threshold is 4/n
+abline(h = threshold, col = "purple", lty = 2)  # Dashed purple line for threshold
+
+```
+# Sensitivity Analysis without Ribble Valley and Burnley
+```{r}
+# Filter out Ribble Valley and Burnley from the dataset
+breast_screening_filtered <- subset(
+  breastcancer_screening_deprivation,
+  `Local Authority` != "Ribble Valley" & `Local Authority` != "Burnley"
+)
+
+# Fit the linear regression model on the filtered dataset
+lm_breast_cancer_screening_vs_imd <- lm(
+  `Breast Cancer Screening Coverage (2023)` ~ `IMD Deprivation Score (2019)`,
+  data = breast_screening_filtered
+)
+
+# Summarise the linear regression model
+summary(lm_breast_cancer_screening_vs_imd)
+
+# Plot the data points and the regression line
+plot(
+  breast_screening_filtered$`IMD Deprivation Score (2019)`,
+  breast_screening_filtered$`Breast Cancer Screening Coverage (2023)`,
+  xlab = "IMD Deprivation Score (2019)",  # X-axis label
+  ylab = "Breast Cancer Screening Coverage (2023)",  # Y-axis label
+  main = "Linear Regression of Screening Coverage vs IMD (Excluding Ribble Valley & Burnley)",  # Plot title
+  pch = 19,  # Solid dots for the data points
+  col = rgb(0, 0, 1, 0.6),  # Blue dots with 60% opacity
+  xlim = c(
+    min(breast_screening_filtered$`IMD Deprivation Score (2019)`),
+    max(breast_screening_filtered$`IMD Deprivation Score (2019)`) * 1.1
+  )  # Extend the x-axis to fit all the points
+)
+
+# Add the regression line
+abline(lm_breast_cancer_screening_vs_imd, col = "red")
+
+
+# Add Local Authority labels to the plot
+text(
+  breast_screening_filtered$`IMD Deprivation Score (2019)`,
+  breast_screening_filtered$`Breast Cancer Screening Coverage (2023)`,
+  labels = breast_screening_filtered$`Local Authority`,
+  pos = 4,  # Position the text to the right of the data points
+  cex = 0.6,  # Adjust the text size
+  col = "black"  # Colour of the labels
+)
+
+
+```
+
+
+
+# 6.  Breast Cancer Screening and Mortality Analysis
+
+## Fit and Plot Linear Regression Model for Breast Cancer Screening and Mortality
+```{r}
+# Fit the linear regression model to predict Breast Cancer Mortality based on Screening Coverage
+lm_breast_cancer_mortality_vs_screening <- lm(
+  `Breast Cancer Mortality Rate per 100,000 (2021-2023)` ~ `Breast Cancer Screening Coverage (2023)`,
+  data = breastcancer_screening_mortality
+)
+
+# Summarise the linear regression model
+summary(lm_breast_cancer_mortality_vs_screening)
+
+# Plot the data points and the regression line
+plot(
+  breastcancer_screening_mortality$`Breast Cancer Screening Coverage (2023)`,
+  breastcancer_screening_mortality$`Breast Cancer Mortality Rate per 100,000 (2021-2023)`,
+  xlab = "Breast Cancer Screening Coverage (2023)",  # X-axis label
+  ylab = "Breast Cancer Mortality Rate per 100,000 (2021–2023)",  # Y-axis label
+  main = "Linear Regression of Mortality vs Screening Coverage",  # Plot title
+  pch = 19,  # Solid dots for the data points
+  col = rgb(0, 0, 1, 0.6),  # Blue dots with 60% opacity
+  xlim = c(
+    min(breastcancer_screening_mortality$`Breast Cancer Screening Coverage (2023)`),
+    max(breastcancer_screening_mortality$`Breast Cancer Screening Coverage (2023)`) * 1.1
+  )  # Extend the x-axis to fit all the points
+)
+
+# Add the red regression line to the model
+abline(lm_breast_cancer_mortality_vs_screening, col = "red")
+
+# Add labels for each Local Authority to identify the data points
+text(
+  breastcancer_screening_mortality$`Breast Cancer Screening Coverage (2023)`,
+  breastcancer_screening_mortality$`Breast Cancer Mortality Rate per 100,000 (2021-2023)`,
+  labels = breastcancer_screening_mortality$`Local Authority`,
+  pos = 4,  # Position the text to the right of the data points
+  cex = 0.6,  # Adjust the text size
+  col = "black"  # Colour of the labels
+)
+
+
+```
+## Breast Cancer Screening Coverage and Mortality Regression Diagnostics 
+```{r}
+# Set layout for 2x2 grid of diagnostic plots
+par(mfrow = c(2, 2)) 
+
+# Create the 4 diagnostic plots for the Breast Cancer Mortality vs Screening model
+plot(lm_breast_cancer_mortality_vs_screening)   
+
+# Calculate Cook's Distance for the Breast Cancer Mortality vs Screening model
+cooksd <- cooks.distance(lm_breast_cancer_mortality_vs_screening)
+
+# Plot Cook's Distance
+plot(cooksd,
+     main = "Cook's Distance for Mortality vs Screening Coverage Model",
+     ylab = "Cook's Distance",
+     type = "h",          # Use vertical lines for Cook's Distance
+     col = "red",         # Make the lines red
+     lwd = 2              # Adjust the line width
+)
+
+# Add labels for each Local Authority
+text(x = 1:length(cooksd), 
+     y = cooksd, 
+     labels = breastcancer_screening_mortality$`Local Authority`,  # Use Local Authority names
+     cex = 0.7,             # Adjust text size for readability
+     pos = 4,               # Position labels to the right of each point
+     col = "blue"           # Set label colour to blue
+)
+
+# Add a threshold line for Cook's Distance (4/n rule)
+threshold <- 4 / length(cooksd)  #
+
+
+```
+## Sensitivity Analysis without Ribble Valley
+```{r}
+# Remove Ribble Valley from the dataset
+breast_screening_mortality_filtered <- subset(
+  breastcancer_screening_mortality,
+  `Local Authority` != "Ribble Valley"
+)
+
+# Fit the linear regression model on the filtered dataset
+lm_breast_mortality_vs_screening_filtered <- lm(
+  `Breast Cancer Mortality Rate per 100,000 (2021-2023)` ~ `Breast Cancer Screening Coverage (2023)`,
+  data = breast_screening_mortality_filtered
+)
+
+# Summarise the filtered linear regression model
+summary(lm_breast_mortality_vs_screening_filtered)
+
+# Plot the data points and the regression line
+plot(
+  breast_screening_mortality_filtered$`Breast Cancer Screening Coverage (2023)`,
+  breast_screening_mortality_filtered$`Breast Cancer Mortality Rate per 100,000 (2021-2023)`,
+  xlab = "Breast Cancer Screening Coverage (2023)",  # X-axis label
+  ylab = "Breast Cancer Mortality Rate per 100,000 (2021-2023)",  # Y-axis label
+  main = "Linear Regression of Mortality vs Screening Coverage (Excluding Ribble Valley)",  # Plot title
+  pch = 19,  # Solid dots for the data points
+  col = rgb(0, 0, 1, 0.6),  # Blue dots with 60% opacity
+  xlim = c(
+    min(breast_screening_mortality_filtered$`Breast Cancer Screening Coverage (2023)`),
+    max(breast_screening_mortality_filtered$`Breast Cancer Screening Coverage (2023)`) * 1.1
+  )  # Extend the x-axis to fit all the points
+)
+
+# Add the regression line
+abline(lm_breast_mortality_vs_screening_filtered, col = "red")
+
+
+# Add Local Authority labels to the plot
+text(
+  breast_screening_mortality_filtered$`Breast Cancer Screening Coverage (2023)`,
+  breast_screening_mortality_filtered$`Breast Cancer Mortality Rate per 100,000 (2021-2023)`,
+  labels = breast_screening_mortality_filtered$`Local Authority`,
+  pos = 4,  # Position the text to the right of the data points
+  cex = 0.6,  # Adjust the text size
+  col = "black"  # Colour of the labels
+)
+
+
+```
+
+
+# 7.  Breast Cancer Screening and Incidence Analysis
+
+## Fit and Plot Linear Regression Model for Breast Cancer Screening and Incidence
+
+```{r}
+# Fit the linear regression model to predict Breast Cancer Incidence based on Screening Coverage
+lm_breast_cancer_incidence_vs_screening <- lm(
+  `Incidence of Breast Cancer (SIR) per 100 (2015-2019)` ~ `Breast Cancer Screening Coverage (2023)`,
+  data = breastcancer_screening_incidence
+)
+
+# Summarise the linear regression model
+summary(lm_breast_cancer_incidence_vs_screening)
+
+# Plot the data points and the regression line
+plot(
+  breastcancer_screening_incidence$`Breast Cancer Screening Coverage (2023)`,
+  breastcancer_screening_incidence$`Incidence of Breast Cancer (SIR) per 100 (2015-2019)`,
+  xlab = "Breast Cancer Screening Coverage (2023)",  # X-axis label
+  ylab = "Incidence of Breast Cancer (SIR) per 100 (2015–2019)",  # Y-axis label
+  main = "Linear Regression of Incidence vs Screening Coverage",  # Plot title
+  pch = 19,  # Solid dots for the data points
+  col = rgb(0, 0, 1, 0.6),  # Blue dots with 60% opacity
+  xlim = c(
+    min(breastcancer_screening_incidence$`Breast Cancer Screening Coverage (2023)`),
+    max(breastcancer_screening_incidence$`Breast Cancer Screening Coverage (2023)`) * 1.1
+  )  # Extend the x-axis to fit all the points
+)
+
+# Add a red regression line to the model
+abline(lm_breast_cancer_incidence_vs_screening, col = "red")
+
+# Add labels for each Local Authority to identify the data points
+text(
+  breastcancer_screening_incidence$`Breast Cancer Screening Coverage (2023)`,
+  breastcancer_screening_incidence$`Incidence of Breast Cancer (SIR) per 100 (2015-2019)`,
+  labels = breastcancer_screening_incidence$`Local Authority`,
+  pos = 4,  # Position the text to the right of the data points
+  cex = 0.6,  # Adjust the text size
+  col = "black"  # Colour of the labels
+)
+
+
+```
+
+
+## Breast Cancer Screening Coverage and Incidence Regression Diagnostics 
+```{r}
+
+# Set layout for 2x2 grid of diagnostic plots
+par(mfrow = c(2, 2))  # Arrange plots in a 2x2 grid
+
+# Create the 4 diagnostic plots for the Breast Cancer Incidence vs Screening model
+plot(lm_breast_cancer_incidence_vs_screening)
+
+# Calculate Cook's Distance for the Breast Cancer Incidence vs Screening model
+cooksd <- cooks.distance(lm_breast_cancer_incidence_vs_screening)
+
+# Compute the threshold for Cook's Distance (4/n rule)
+threshold <- 4 / length(cooksd)  # Common threshold is 4/n where n is 12
+
+# Plot Cook's Distance with an extended y-axis limit
+plot(
+  cooksd,
+  main = "Cook's Distance for Breast Cancer Incidence vs Screening Coverage Model",  # Plot title
+  ylab = "Cook's Distance",  # Y-axis label
+  type = "h",               # Use vertical lines for Cook's Distance
+  col = "red",              # Make the lines red
+  lwd = 2,                  # Line width
+  ylim = c(0, max(cooksd, threshold) * 1.2)  # Extend y-axis to fit the threshold line
+)
+
+# Add labels for each Local Authority
+text(
+  x = 1:length(cooksd), 
+  y = cooksd, 
+  labels = breastcancer_screening_incidence$`Local Authority`,  # Use Local Authority names
+  cex = 0.7,                 # Adjust text size for readability
+  pos = 4,                   # Position labels to the right of each point
+  col = "blue"               # Set label colour to blue
+)
+
+# Add the threshold line for Cook's Distance
+abline(h = threshold, col = "purple", lty = 2)  # Dashed purple line for threshold
+
+
+```
+
+
+
+# 8.  Breast Cancer Screening, Deprivation and Mortality Analysis
+
+## Fit Multiple Linear Regression Regression Model with interaction term of deprivation and breast cancer screening coveage on  Mortality
+```{r}
+# Fit the multiple regression model with interaction between deprivation and screening
+lm_mortality_deprivation_screening_interaction <- lm(
+  `Breast Cancer Mortality Rate per 100,000 (2021-2023)` ~ 
+    `IMD Deprivation Score (2019)` * `Breast Cancer Screening Coverage (2023)`,
+  data = breastcancer_deprivation_screening_mortality
+)
+
+# Summarise the model
+summary(lm_mortality_deprivation_screening_interaction)
+```
+
+# Check for Multicollinarity with VIF values for this model 
+```{r}
+
+# Check for multicollinearity using Variance Inflation Factors (VIFs) 
+vif(lm_mortality_deprivation_screening_interaction)
+```
+
+## As the VIF values are above 10, centre the variables and refit the multiple linear regression model  
+```{r}
+
+# Centre the IMD Deprivation Score and Screening Coverage variables
+breastcancer_deprivation_screening_mortality$IMD_centred <- scale(breastcancer_deprivation_screening_mortality$`IMD Deprivation Score (2019)`, center = TRUE, scale = FALSE)
+breastcancer_deprivation_screening_mortality$Screening_centred <- scale(breastcancer_deprivation_screening_mortality$`Breast Cancer Screening Coverage (2023)`, center = TRUE, scale = FALSE)
+
+
+# Refit the model using centred variables
+lm_mortality_deprivation_screening_interaction_centred <- lm(
+  `Breast Cancer Mortality Rate per 100,000 (2021-2023)` ~ 
+    IMD_centred * Screening_centred,
+  data = breastcancer_deprivation_screening_mortality
+)
+
+# Summarise the centred model
+summary(lm_mortality_deprivation_screening_interaction_centred)
+
+# Check VIFs again in centred model
+vif(lm_mortality_deprivation_screening_interaction_centred)
+
+```
+
+## Diagnostics for Breast Cancer Deprivation, Screening and Mortality Multiple Linear Regression  Model
+```{r}
+
+# Set layout for 2x2 grid of diagnostic plots
+par(mfrow = c(2, 2)) 
+
+# Create the 4 diagnostic plots for the multiple linear regression model
+plot(lm_mortality_deprivation_screening_interaction_centred)
+
+# Calculate Cook's Distance for the multiple linear regression model
+cooksd <- cooks.distance(lm_mortality_deprivation_screening_interaction_centred)
+
+# Plot Cook's Distance
+plot(cooksd,
+     main = "Cook's Distance for Multiple Linear Regression Breast Cancer Mortality Model",
+     ylab = "Cook's Distance",
+     type = "h",          # Use vertical lines for Cook's Distance
+     col = "red",         # Make the lines red
+     lwd = 2              # Adjust the line width
+)
+
+# Add labels for each Local Authority
+text(x = 1:length(cooksd), 
+     y = cooksd, 
+     labels = breastcancer_deprivation_screening_mortality$`Local Authority`,  # Use Local Authority names
+     cex = 0.7,             # Adjust text size for readability
+     pos = 4,               # Position labels to the right of each point
+     col = "blue"           # Set label colour to blue
+)
+
+# Add a threshold line for Cook's Distance (4/n rule)
+threshold <- 4 / length(cooksd)  # Common threshold is 4/n
+abline(h = threshold, col = "purple", lty = 2)  # Dashed purple line for threshold
+
+
+```
+
+## Sensitivity Analysis: Run Multiple Linear Regression without Ribble Valley 
+```{r}
+
+# Remove Ribble Valley from the dataset to create filtered dataset
+filtered_data_multiplelinearregression_mortality <- subset(breastcancer_deprivation_screening_mortality,
+                        `Local Authority` != "Ribble Valley")
+
+
+# Re-center predictors using the filtered dataset
+filtered_data_multiplelinearregression_mortality$IMD_centered <- scale(filtered_data_multiplelinearregression_mortality$`IMD Deprivation Score (2019)`, center = TRUE, scale = FALSE)
+filtered_data_multiplelinearregression_mortality$Screening_centered <- scale(filtered_data_multiplelinearregression_mortality$`Breast Cancer Screening Coverage (2023)`, center = TRUE, scale = FALSE)
+
+# Refit the model without Ribble Valley
+lm_filtered_multiplelinearregression_mortality <- lm(
+  `Breast Cancer Mortality Rate per 100,000 (2021-2023)` ~ IMD_centered * Screening_centered,
+  data = filtered_data_multiplelinearregression_mortality
+)
+
+# View summary
+summary(lm_filtered_multiplelinearregression_mortality)
+
+
+#Check VIFs
+
+vif(lm_filtered_multiplelinearregression_mortality)
+
+```
+
+## Plotting the interaction found in the multiple linear regression model of screening, deprivation and mortality
+```{r}
+
+# Generate predictions for the interaction plot which forms predicted values based on the interaction model 
+predicted <- ggpredict(
+  lm_mortality_deprivation_screening_interaction_centred,   # The fitted multiple regression model
+  terms = c("IMD_centered", "Screening_centered")           # Specify the terms for the interaction plot
+)
+
+# Plot the interaction term with labelled axis 
+plot(predicted) + 
+  labs(
+    title = "Predicted Breast Cancer Mortality by Deprivation and Screening Coverage",  # Plot title
+    x = "IMD Deprivation Score (2019)",  # X-axis label - Deprivation score
+    y = "Predicted Breast Cancer Mortality Rate (per 100,000)",  # Y-axis label - Predicted mortality rate
+    colour = "Screening Coverage (%)"  # Legend title for the colour mapping (indicates Screening Coverage)
+  ) + 
+  theme_minimal()  
+
+```
+
+
+# 9.  Breast Cancer Screening, Deprivation and Incidence Analysis
+
+## Fit multiple regression model of screening, deprivation on incidence with an interaction term 
+
+```{r}
+# Fit the multiple regression model with interaction between deprivation and screening
+lm_incidence_deprivation_screening_interaction <- lm(
+  `Incidence of Breast Cancer (SIR) per 100 (2015-2019)` ~ 
+    `IMD Deprivation Score (2019)` * `Breast Cancer Screening Coverage (2023)`,
+  data = breastcancer_deprivation_screening_incidence
+)
+
+# Summarise the model
+summary(lm_incidence_deprivation_screening_interaction)
+```
+
+# Check for Multicollinarity with VIF values for this model 
+```{r}
+# Check for multicollinearity using Variance Inflation Factors (VIFs) 
+vif(lm_incidence_deprivation_screening_interaction)
+
+```
+
+
+## As the VIF values are above 10, centre the variables and refit the multiple linear regression model  
+```{r}
+
+
+# Centre the predictors
+breastcancer_deprivation_screening_incidence$IMD_centered <- scale(
+  breastcancer_deprivation_screening_incidence$`IMD Deprivation Score (2019)`, 
+  center = TRUE, scale = FALSE
+)
+
+breastcancer_deprivation_screening_incidence$Screening_centered <- scale(
+  breastcancer_deprivation_screening_incidence$`Breast Cancer Screening Coverage (2023)`, 
+  center = TRUE, scale = FALSE
+)
+
+# Refit the model using centred variables
+lm_incidence_deprivation_screening_interaction_centered <- lm(
+  `Incidence of Breast Cancer (SIR) per 100 (2015-2019)` ~ 
+    IMD_centered * Screening_centered,
+  data = breastcancer_deprivation_screening_incidence
+)
+
+# Summarise the centred model
+summary(lm_incidence_deprivation_screening_interaction_centered)
+
+# Check VIFs of the centred model
+
+vif(lm_incidence_deprivation_screening_interaction_centered)
+
+```
+
+
+# Diagnostics for Breast Cancer Deprivation, Screening and Incidence Multiple Linear Regression Model
+```{r}
+# Set layout for 2x2 grid of diagnostic plots
+par(mfrow = c(2, 2)) 
+
+# Create the 4 diagnostic plots for the Breast Cancer Incidence model with deprivation and screening interaction
+plot(lm_incidence_deprivation_screening_interaction_centered)
+
+# Calculate Cook's Distance for the multiple linear regression model
+cooksd <- cooks.distance(lm_incidence_deprivation_screening_interaction_centered)
+
+# Plot Cook's Distance
+plot(
+  cooksd,
+  main = "Cook's Distance for Multiple Linear Regression Breast Cancer Incidence Model",
+  ylab = "Cook's Distance",
+  type = "h",          # Use vertical lines for Cook's Distance
+  col = "red",         # Make the lines red
+  lwd = 2              # Adjust the line width
+)
+
+# Add labels for each Local Authority
+text(
+  x = 1:length(cooksd), 
+  y = cooksd, 
+  labels = breastcancer_deprivation_screening_incidence$`Local Authority`,  # Use Local Authority names
+  cex = 0.7,             # Adjust text size for readability
+  pos = 4,               # Position labels to the right of each point
+  col = "blue"           # Set label colour to blue
+)
+
+# Add a threshold line for Cook's Distance (4/n rule)
+threshold <- 4 / length(cooksd)  # Common threshold is 4/n
+abline(h = threshold, col = "purple", lty = 2)  # Dashed purple line for threshold
+
+
+```
+
+# Sensitivity Analysis without Burnley and Ribble Valley
+```{r}
+# Remove Ribble Valley and Burnley from the dataset to create a filtered dataset
+filtered_incidence_multiplelinearregression <- subset(
+  breastcancer_deprivation_screening_incidence,
+  !`Local Authority` %in% c("Ribble Valley", "Burnley")
+)
+
+# Centre the IMD Deprivation Score (2019) variable using the filtered data
+filtered_incidence_multiplelinearregression$IMD_centered <- as.numeric(scale(
+  filtered_incidence_multiplelinearregression$`IMD Deprivation Score (2019)`,
+  center = TRUE,
+  scale = FALSE  # Only centre, no scaling
+))
+
+# Centre the Breast Cancer Screening Coverage (2023) variable
+filtered_incidence_multiplelinearregression$Screening_centered <- as.numeric(scale(
+  filtered_incidence_multiplelinearregression$`Breast Cancer Screening Coverage (2023)`,
+  center = TRUE,
+  scale = FALSE  # Only centre, no scaling
+))
+
+# Refit the multiple linear regression model using the centred predictors
+lm_incidence_filtered <- lm(
+  `Incidence of Breast Cancer (SIR) per 100 (2015-2019)` ~ 
+    IMD_centered * Screening_centered,
+  data = filtered_incidence_multiplelinearregression
+)
+
+# View the summary of the model
+summary(lm_incidence_filtered)
+
+# Check Variance Inflation Factors (VIFs) to assess multicollinearity
+vif(lm_incidence_filtered)
+
+
+```
+
+
+

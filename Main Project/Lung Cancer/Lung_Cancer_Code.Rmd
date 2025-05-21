@@ -1,0 +1,707 @@
+---
+title: "Lung_Cancer_Analysis"
+output: html_document
+date: "2025-01-13"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 1. Set Up
+
+## Install and Load Packages
+```{r}
+
+library(tidyverse) # load tidyverse package to make graphs and format the data in tables
+library(car) # load car package for vifs to test for multicollinearity in multiple linear regressions
+
+```
+
+## Load Data for the Lung Cancer Analysis from the Main Project Folder
+```{r}
+
+# Load the CSV files for Lung Cancer Registrations vs Deprivation
+lungcancer_registrations_deprivation <- read.csv("Lung_cancer_registrations_vs_deprivation.csv")
+lungcancer_registrations_deprivation
+
+# Load the CSV files for Lung Cancer Mortality Rate vs Deprivation
+lungcancer_mortality_deprivation <- read.csv("Lung_cancer_mortality_vs_deprivation.csv")
+lungcancer_mortality_deprivation 
+
+# Load the CSV files for Lung Cancer Mortality Rate vs Lung Cancer Registrations
+lungcancer_registrations_mortality <- read.csv("lungcancer_registrations_mortality.csv")
+lungcancer_registrations_mortality
+
+# Load the CSV files for Smoking Prevalence vs Deprivation
+smoking_deprivation <- read.csv("Smoking_deprivation.csv")
+smoking_deprivation
+
+# Load the CSV files for Smoking Prevalence vs Lung Cancer Registrations
+smoking_lung_cancer_registrations <- read.csv("smoking_vs_registrations.csv")
+smoking_lung_cancer_registrations
+
+# Load the CSV files for Smoking Prevalence vs Lung Cancer Registrations
+smoking_lung_cancer_mortality <- read.csv("smoking_mortality.csv")
+smoking_lung_cancer_mortality
+
+# Load CSV Files for Smoking Prevalence, Deprivation and Lung Cancer Registrations
+
+smoking_deprivation_lung_cancer_registrations <- read.csv("lungcancer_deprivation_registrations_smoking.csv")
+smoking_deprivation_lung_cancer_registrations
+
+
+# Load CSV Files for Smoking Prevalence, Deprivation and  Lung Cancer Registrations
+
+smoking_deprivation_lung_cancer_mortality <- read.csv("smoking_deprivation_mortality.csv")
+smoking_deprivation_lung_cancer_mortality
+
+
+```
+
+
+## Data Processing
+```{r}
+
+# Function to rename the columns in a dataset  
+rename_columns <- function(dataset, new_colnames) {  
+   
+   # Check if the number of new column names matches the number of columns in the dataset  
+   if (ncol(dataset) != length(new_colnames)) {  
+     stop("Error: The number of columns in the dataset does not match the provided column names.")  
+     # stop() halts execution and returns an error message if the column counts do not match  
+   }  
+   
+   # Assign the new column names to the dataset  
+   colnames(dataset) <- new_colnames  
+   
+   # Return the modified dataset with the updated column names  
+   return(dataset)  
+}  
+
+# Rename Columns for Each Dataset
+lungcancer_registrations_deprivation <- rename_columns(
+  lungcancer_registrations_deprivation,
+  c("Local Authority", "IMD Deprivation Score (2019)", "Lung Cancer Registrations per 100,000 (2017-2019)")
+)
+
+lungcancer_mortality_deprivation <- rename_columns(
+  lungcancer_mortality_deprivation,
+  c("Local Authority", "IMD Deprivation Score (2019)", "Lung Cancer Mortality Rate per 100,000 (2021-2023)")
+)
+
+lungcancer_registrations_mortality <- rename_columns(
+  lungcancer_registrations_mortality,
+  c("Local Authority", "Lung Cancer Registrations per 100,000 (2017-2019)", "Lung Cancer Mortality Rate per 100,000 (2021-2023)")
+)
+
+smoking_deprivation <- rename_columns(
+  smoking_deprivation,
+  c("Local Authority", "IMD Deprivation Score (2019)", "Smoking Prevalence (%) (2022-2023)")
+)
+
+smoking_lung_cancer_registrations <- rename_columns(
+  smoking_lung_cancer_registrations,
+  c("Local Authority", "Smoking Prevalence (%) (2022-2023)", "Lung Cancer Registrations per 100,000 (2017-2019)")
+)
+
+smoking_lung_cancer_mortality <- rename_columns(
+  smoking_lung_cancer_mortality,
+  c("Local Authority", "Smoking Prevalence (%) (2022-2023)", "Lung Cancer Mortality Rate per 100,000 (2021-2023)")
+)
+
+
+smoking_deprivation_lung_cancer_registrations <- rename_columns(
+  smoking_deprivation_lung_cancer_registrations,
+   c("Local Authority", "IMD Deprivation Score (2019)", "Lung Cancer Registrations per 100,000 (2017-2019)", "Smoking Prevalence (%) (2022-2023)")
+)
+
+smoking_deprivation_lung_cancer_mortality <- rename_columns(
+  smoking_deprivation_lung_cancer_mortality,
+   c("Local Authority", "IMD Deprivation Score (2019)", "Smoking Prevalence (%) (2022-2023)", "Lung Cancer Mortality Rate per 100,000 (2021-2023)")
+)
+  
+# Display the Processed Datasets 
+lungcancer_registrations_deprivation
+lungcancer_mortality_deprivation
+lungcancer_registrations_mortality
+smoking_deprivation
+smoking_lung_cancer_registrations
+smoking_deprivation_lung_cancer_mortality
+smoking_deprivation_lung_cancer_registrations
+smoking_deprivation_lung_cancer_mortality
+
+
+```
+
+# 2. Lung Cancer Registrations and Deprivation Analysis
+
+## Fit and Plot Linear Regression Model for Lung Cancer Registrations and Deprivation 
+```{r}
+
+# Fit the linear regression model to predict Lung Cancer Registrations based on IMD Deprivation Score
+
+lm_lung_cancer_registration_vs_imd <- lm(
+  `Lung Cancer Registrations per 100,000 (2017-2019)` ~ `IMD Deprivation Score (2019)`, 
+  data = lungcancer_registrations_deprivation
+)
+
+# Summarise the linear regression model 
+summary(lm_lung_cancer_registration_vs_imd)
+
+# Plot the linear regression model
+plot(
+  lungcancer_registrations_deprivation$`IMD Deprivation Score (2019)`,
+  lungcancer_registrations_deprivation$`Lung Cancer Registrations per 100,000 (2017-2019)`,
+  xlab = "IMD Deprivation Score (2019)",
+  ylab = "Lung Cancer Registrations per 100,000 (2017–2019)",
+  main = "Linear Regression of Lung Cancer Registrations and Deprivation across Lancashire-12",
+  pch = 19,
+  col = rgb(0, 0, 1, 0.6),  # Blue with 60% opacity
+  xlim = c(min(lungcancer_registrations_deprivation$`IMD Deprivation Score (2019)`) * 0.95,
+           max(lungcancer_registrations_deprivation$`IMD Deprivation Score (2019)`) * 1.05),
+  cex.lab = 1.2,
+  cex.main = 1.3
+)
+
+# Add red regression line
+abline(lm_lung_cancer_registration_vs_imd, col = "red", lwd = 2)
+
+
+
+# Add labels for each Local Authority to identify the data points
+text(
+  lungcancer_registrations_deprivation$`IMD Deprivation Score (2019)`,  
+  lungcancer_registrations_deprivation$`Lung Cancer Registrations per 100,000 (2017-2019)`,  
+  labels = lungcancer_registrations_deprivation$`Local Authority`,  
+  pos = 4,  
+  cex = 0.6,  
+  col = "black"  
+)
+
+
+
+```
+
+## Lung Cancer Registrations vs Deprivation Linear Regression Diagnostics
+```{r}
+
+# Set layout for 2x2 grid of the 4 diagnostic plots
+par(mfrow = c(2, 2))  # Arrange plots in a 2x2 grid
+
+# Create the 4 diagnostic plots for the Lung Cancer Registrations vs Deprivation model
+plot(lm_lung_cancer_registration_vs_imd)
+
+
+# Calculate Cook's Distance for the Lung Cancer Registrations vs Deprivation model
+cooksd <- cooks.distance(lm_lung_cancer_registration_vs_imd)
+
+# Plot Cook's Distance 
+plot(
+  cooksd,
+  main = "Cook's Distance for Lung Cancer Registrations vs Deprivation",  # Plot title
+  ylab = "Cook's Distance",  # Y-axis label
+  type = "h",               # Use vertical lines for Cook's Distance
+  col = "red",              # Make the lines red
+  lwd = 2                   # Line width
+)
+
+# Add labels for each Local Authority
+text(
+  x = 1:length(cooksd),
+  y = cooksd,
+  labels = lungcancer_registrations_deprivation$`Local Authority`,  # Local Authority names
+  cex = 0.7,                # Adjust text size for readability
+  pos = 4,                  # Position labels to the right of each point
+  col = "blue"              # Set label colour to blue
+)
+
+# Add a threshold line for Cook's Distance (4/n rule)
+threshold <- 4 / length(cooksd)  # Common threshold is 4/n
+abline(h = threshold, col = "purple", lty = 2)  # Dashed purple line for threshold
+
+
+```
+
+# 3. Lung Cancer Mortality Rate and Deprivation Analysis
+
+## Fit and Plot Linear Regression Model for Lung Cancer Mortality Rate and Deprivation 
+```{r}
+
+# Fit the linear regression model to predict Lung Cancer Mortality Rate based on IMD Deprivation Score 
+lm_lung_cancer_mortality_vs_imd <- lm(
+  `Lung Cancer Mortality Rate per 100,000 (2021-2023)` ~ `IMD Deprivation Score (2019)`, 
+  data = lungcancer_mortality_deprivation
+)
+
+# Summarise the linear regression model 
+summary(lm_lung_cancer_mortality_vs_imd)
+
+# Plot the data points and the regression line
+plot(
+  lungcancer_mortality_deprivation$`IMD Deprivation Score (2019)`,   
+  lungcancer_mortality_deprivation$`Lung Cancer Mortality Rate per 100,000 (2021-2023)`,   
+  xlab = "IMD Deprivation Score (2019)",   # X-axis label
+  ylab = "Lung Cancer Mortality Rate per 100,000 (2021-2023)",   # Y-axis label
+  main = "Linear Regression of Lung Cancer Mortality Rate and IMD Deprivation across Lancashire-12",   # Plot title
+  pch = 19,   # Solid dots
+  col = rgb(0, 0, 1, 0.6)  # Blue with 60% opacity
+)
+
+# Add a red regression line to the model
+abline(lm_lung_cancer_mortality_vs_imd, col = "red")
+
+# Add labels for each Local Authority to identify the data points
+text(
+  lungcancer_mortality_deprivation$`IMD Deprivation Score (2019)`,  
+  lungcancer_mortality_deprivation$`Lung Cancer Mortality Rate per 100,000 (2021-2023)`,  
+  labels = lungcancer_mortality_deprivation$`Local Authority`,  
+  pos = 4,  
+  cex = 0.6,  
+  col = "black"  
+)
+
+
+```
+
+## Lung Cancer Mortality Rate vs Deprivation Linear Regression Diagnostics 
+
+```{r}
+
+# Set layout for 2x2 grid of the 4 diagnostic plots
+par(mfrow = c(2, 2))  # Arrange plots in a 2x2 grid
+
+# Create the 4 diagnostic plots for the Lung Cancer Mortality vs Deprivation model
+plot(lm_lung_cancer_mortality_vs_imd)
+
+
+# Calculate Cook's Distance for the Lung Cancer Mortality vs Deprivation model
+cooksd <- cooks.distance(lm_lung_cancer_mortality_vs_imd)
+
+# Plot Cook's Distance 
+plot(
+  cooksd,
+  main = "Cook's Distance for Lung Cancer Mortality vs Deprivation",  # Plot title
+  ylab = "Cook's Distance",  # Y-axis label
+  type = "h",               # Use vertical lines for Cook's Distance
+  col = "red",              # Make the lines red
+  lwd = 2                   # Line width
+)
+
+# Add labels for each Local Authority
+text(
+  x = 1:length(cooksd),
+  y = cooksd,
+  labels = lungcancer_mortality_deprivation$`Local Authority`,  # Use Local Authority names
+  cex = 0.7,                # Adjust text size for readability
+  pos = 4,                  # Position labels to the right of each point
+  col = "blue"              # Set label colour to blue
+)
+
+
+# Add the threshold line for Cook's Distance (4/n rule)
+threshold <- 4 / length(cooksd)  # Common threshold is 4/n
+abline(h = threshold, col = "purple", lty = 2)  # Dashed purple line for threshold
+
+```
+## Quadratic Transformation and Comparison of Linear and Quadratic Regression Models
+```{r}
+# Fit the linear regression model with a quadratic term
+lm_lung_cancer_mortality_vs_imd_quad <- lm(
+  `Lung Cancer Mortality Rate per 100,000 (2021-2023)` ~ 
+  `IMD Deprivation Score (2019)` + I(`IMD Deprivation Score (2019)`^2),
+  data = lungcancer_mortality_deprivation
+)
+
+# Summarise the model
+summary(lm_lung_cancer_mortality_vs_imd_quad)
+
+
+# Compare models with ANOVA to assess whether the quadratic term improves the model
+anova(lm_lung_cancer_mortality_vs_imd, lm_lung_cancer_mortality_vs_imd_quad)
+
+
+```
+
+# 4. Lung Cancer Registrations and Mortality Rate Analysis
+
+## Fit and Plot Linear Regression Model for Lung Cancer Registrations and Mortality Rate 
+```{r}
+
+# Fit the linear regression model to predict Lung Cancer Mortality Rate based on Cancer Registrations
+lm_lung_cancer_mortality_vs_registrations <- lm(
+  `Lung Cancer Mortality Rate per 100,000 (2021-2023)` ~ `Lung Cancer Registrations per 100,000 (2017-2019)`,  
+  data = lungcancer_registrations_mortality
+)
+
+# Summarise the linear regression model
+summary(lm_lung_cancer_mortality_vs_registrations)
+
+# Plot the data points and the regression line
+plot(
+ lungcancer_registrations_mortality$`Lung Cancer Registrations per 100,000 (2017-2019)`,  # X-axis
+  lungcancer_registrations_mortality$`Lung Cancer Mortality Rate per 100,000 (2021-2023)`,  # Y-axis
+  xlab = "Lung Cancer Registrations per 100,000 (2017-2019)",  # X-axis label
+  ylab = "Lung Cancer Mortality Rate per 100,000 (2021-2023)",  # Y-axis label
+  main = "Linear Regression of Lung Cancer Mortality Rate and Registrations across Lancashire-12",  # Plot title
+  pch = 19,  # Solid dots for data points
+  col = rgb(0, 0, 1, 0.6)  # Blue dots with 60% opacity
+)
+
+# Add a red regression line to the plot
+abline(lm_lung_cancer_mortality_vs_registrations, col = "red")
+
+
+# Add labels for each Local Authority to identify the data points
+text(
+  lungcancer_registrations_mortality$`Lung Cancer Registrations per 100,000 (2017-2019)`,  
+  lungcancer_registrations_mortality$`Lung Cancer Mortality Rate per 100,000 (2021-2023)`,  
+  labels = lungcancer_registrations_mortality$`Local Authority`,  
+  pos = 4,  
+  cex = 0.6,  
+  col = "black"  
+)
+
+
+
+```
+
+## Lung Cancer Registrations vs Mortality Rate Linear Regression Diagnostic Plots
+```{r}
+
+# Set layout for 2x2 grid of the 4 diagnostic plots
+par(mfrow = c(2, 2))  # Arrange plots in a 2x2 grid
+
+# Create the 4 diagnostic plots for the Lung Cancer Mortality vs Registrations model
+plot(lm_lung_cancer_mortality_vs_registrations)
+
+
+# Calculate Cook's Distance for the Lung Cancer Mortality vs Registrations model
+cooksd <- cooks.distance(lm_lung_cancer_mortality_vs_registrations)
+
+# Plot Cook's Distance 
+plot(
+  cooksd,
+  main = "Cook's Distance for Lung Cancer Mortality vs Registrations",  # Plot title
+  ylab = "Cook's Distance",  # Y-axis label
+  type = "h",               # Use vertical lines for Cook's Distance
+  col = "red",              # Make the lines red
+  lwd = 2                   # Line width
+)
+
+# Add labels for each Local Authority
+text(
+  x = 1:length(cooksd),
+  y = cooksd,
+  labels = lungcancer_registrations_mortality$`Local Authority`,  # Use Local Authority names
+  cex = 0.7,                # Adjust text size for readability
+  pos = 4,                  # Position labels to the right of each point
+  col = "blue"              # Set label colour to blue
+)
+
+
+# Add the threshold line for Cook's Distance (4/n rule)
+threshold <- 4 / length(cooksd)  # Common threshold is 4/n
+abline(h = threshold, col = "purple", lty = 2)  # Dashed purple line for threshold
+
+```
+
+# 5. Smoking and Deprivation Analysis
+
+## Fit and Plot Linear Regression Model for Smoking Prevalence and Deprivation
+```{r}
+
+# Fit the linear regression model to predict Smoking Prevalence based on IMD Deprivation Score
+lm_smoking_prevalence_vs_deprivation <- lm(
+  `Smoking Prevalence (%) (2022-2023)` ~ `IMD Deprivation Score (2019)`, 
+  data = smoking_deprivation
+)
+
+# Summarise the linear regression model
+summary(lm_smoking_prevalence_vs_deprivation)
+
+# Plot the data points and the regression line
+plot(
+  smoking_deprivation$`IMD Deprivation Score (2019)`, 
+  smoking_deprivation$`Smoking Prevalence (%) (2022-2023)`, 
+  xlab = "IMD Deprivation Score (2019)",  # X-axis label
+  ylab = "Smoking Prevalence (%) (2022-2023)",  # Y-axis label
+  main = "Linear Regression of Smoking Prevalence and IMD Deprivation Score across Lancashire-12",  # Plot title
+  pch = 19,  # Solid dots for data points
+  col = rgb(0, 0, 1, 0.6)  # Blue dots with 60% opacity
+)
+
+# Add a red regression line to the plot
+abline(lm_smoking_prevalence_vs_deprivation, col = "red")
+
+# Add labels for each Local Authority to identify the data points
+text(
+  smoking_deprivation$`IMD Deprivation Score (2019)`,  
+  smoking_deprivation$`Smoking Prevalence (%) (2022-2023)`,  
+  labels = smoking_deprivation$`Local Authority`,  
+  pos = 4,  
+  cex = 0.6,  
+  col = "black"  
+)
+
+
+
+```
+
+## Smoking Prevalence vs Deprivation Linear Regression Diagnostics
+
+```{r}
+
+# Set 2x2 grid for diagnostic plots
+par(mfrow = c(2, 2))  # Arrange plots in a 2x2 grid
+
+# Create the 4 diagnostic plots for the Lung Cancer Mortality vs Deprivation model
+plot(lm_smoking_prevalence_vs_deprivation)
+
+
+# Calculate Cook's Distance for the Lung Cancer Mortality vs Deprivation model
+cooksd <- cooks.distance(lm_smoking_prevalence_vs_deprivation)
+
+# Plot Cook's Distance
+plot(
+  cooksd,
+  main = "Cook's Distance for Smoking Prevalence vs Deprivation",  # Plot title
+  ylab = "Cook's Distance",  # Y-axis label
+  type = "h",               # Use vertical lines for Cook's Distance
+  col = "red",              # Make the lines red
+  lwd = 2,                  # Line width
+  ylim = c(0, 0.35)         # Extend the upper limit of the y-axis to 0.35 so threshold line is visible
+)
+
+# Add labels for each Local Authority
+text(
+  x = 1:length(cooksd),
+  y = cooksd,
+  labels = smoking_deprivation$`Local Authority`,  # Use Local Authority names
+  cex = 0.7,                # Adjust text size for readability
+  pos = 4,                  # Position labels to the right of each point
+  col = "blue"              # Set label colour to blue
+)
+
+
+# Add the threshold line for Cook's Distance (4/n rule)
+threshold <- 4 / length(cooksd)  # Common threshold is 4/n
+abline(h = threshold, col = "purple", lty = 2)  # Dashed purple line for threshold
+
+```
+
+# 6. Smoking and Lung Cancer Registrations Analysis
+
+## Fit and Plot Linear Regression Model for Smoking Prevalence and Lung Cancer Registrations
+```{r}
+# Fit the linear regression model to predict Lung Cancer Registrations based on Smoking Prevalence
+lm_lung_cancer_registrations_vs_smoking <- lm(
+  `Lung Cancer Registrations per 100,000 (2017-2019)` ~ `Smoking Prevalence (%) (2022-2023)`, 
+  data = smoking_lung_cancer_registrations
+)
+
+# Summarise the linear regression model
+summary(lm_lung_cancer_registrations_vs_smoking)
+
+# Plot the data points and the regression line
+plot(
+  smoking_lung_cancer_registrations$`Smoking Prevalence (%) (2022-2023)`, 
+  smoking_lung_cancer_registrations$`Lung Cancer Registrations per 100,000 (2017-2019)`, 
+  xlab = "Smoking Prevalence (%) (2022-2023)",  # X-axis label
+  ylab = "Lung Cancer Registrations per 100,000 (2017-2019)",  # Y-axis label
+  main = "Linear Regression of Lung Cancer Registrations and Smoking across Lancashire-12",  # Plot title
+  pch = 19,  # Solid dots for data points
+  col = rgb(0, 0, 1, 0.6)  # Blue dots with 60% opacity
+)
+
+# Add a red regression line to the plot
+abline(lm_lung_cancer_registrations_vs_smoking, col = "red")
+
+# Add labels for each Local Authority to identify the data points
+text(
+  smoking_lung_cancer_registrations$`Smoking Prevalence (%) (2022-2023)`,  
+  smoking_lung_cancer_registrations$`Lung Cancer Registrations per 100,000 (2017-2019)`,  
+  labels = smoking_lung_cancer_registrations$`Local Authority`,  
+  pos = 4,  
+  cex = 0.6,  
+  col = "black"  
+)
+
+
+
+
+```
+
+## Smoking Prevalence vs Lung Cancer Registrations Linear Regression Diagnostic Plots
+```{r}
+
+# Set 2x2 grid for diagnostic plots
+par(mfrow = c(2, 2))  # Arrange plots in a 2x2 grid
+
+# Create the 4 diagnostic plots for the Lung Cancer Incidence vs Smoking model
+plot(lm_lung_cancer_registrations_vs_smoking)
+
+
+# Calculate Cook's Distance for the Lung Cancer Incidence vs Smoking model
+cooksd <- cooks.distance(lm_lung_cancer_registrations_vs_smoking)
+
+# Plot Cook's Distance with an extended y-axis limit
+plot(
+  cooksd,
+  main = "Cook's Distance for Lung Cancer Incidence vs Smoking",  # Plot title
+  ylab = "Cook's Distance",  # Y-axis label
+  type = "h",               # Use vertical lines for Cook's Distance
+  col = "red",              # Make the lines red
+  lwd = 2,                  # Line width
+  ylim = c(0, 0.5)          # Extend the upper limit of the y-axis to 0.5 so threshold line is visible
+)
+
+# Add labels for each Local Authority
+text(
+  x = 1:length(cooksd),
+  y = cooksd,
+  labels = smoking_lung_cancer_registrations$`Local Authority`,  # Use Local Authority names
+  cex = 0.7,                # Adjust text size for readability
+  pos = 4,                  # Position labels to the right of each point
+  col = "blue"              # Set label colour to blue
+)
+
+
+# Add the threshold line for Cook's Distance (4/n rule)
+threshold <- 4 / length(cooksd)  # Common threshold is 4/n
+abline(h = threshold, col = "purple", lty = 2)  # Dashed purple line for threshold
+  
+
+
+```
+
+
+# 7. Smoking and Lung Cancer Mortality Analysis
+
+## Fit and Plot Linear Regression Model for Smoking Prevalence and Lung Cancer Mortality
+```{r}
+
+# Fit the linear regression model to predict Lung Cancer Mortality based on Smoking Prevalence
+lm_lung_cancer_mortality_vs_smoking <- lm(
+  `Lung Cancer Mortality Rate per 100,000 (2021-2023)` ~ `Smoking Prevalence (%) (2022-2023)`, 
+  data = smoking_lung_cancer_mortality
+)
+
+# Summarise the linear regression model
+summary(lm_lung_cancer_mortality_vs_smoking)
+
+# Plot the data points and the regression line
+plot(
+  smoking_lung_cancer_mortality$`Smoking Prevalence (%) (2022-2023)`, 
+  smoking_lung_cancer_mortality$`Lung Cancer Mortality Rate per 100,000 (2021-2023)`, 
+  xlab = "Smoking Prevalence (%) (2022-2023)",  # X-axis label
+  ylab = "Lung Cancer Mortality Rate per 100,000 (2021-2023)",  # Y-axis label
+  main = "Linear Regression of Lung Cancer Mortality vs Smoking Prevalence",  # Plot title
+  pch = 19,  # Solid dots for data points
+  col = rgb(0, 0, 1, 0.6)  # Blue dots with 60% opacity
+)
+
+# Add a red regression line to the plot
+abline(lm_lung_cancer_mortality_vs_smoking, col = "red")
+
+
+# Add labels for each Local Authority to identify the data points
+text(
+  smoking_lung_cancer_mortality$`Smoking Prevalence (%) (2022-2023)`,  
+  smoking_lung_cancer_mortality$`Lung Cancer Mortality Rate per 100,000 (2021-2023)`,  
+  labels = smoking_lung_cancer_mortality$`Local Authority`,  
+  pos = 4,  
+  cex = 0.6,  
+  col = "black"  
+)
+
+
+
+```
+## Smoking Prevalence vs Lung Cancer Mortality Linear Regression Diagnostic Plots 
+```{r}
+
+# Set 2x2 grid for diagnostic plots
+par(mfrow = c(2, 2))  # Arrange plots in a 2x2 grid
+
+# Create the 4 diagnostic plots for the Lung Cancer Mortality and Smoking model
+plot(lm_lung_cancer_mortality_vs_smoking)
+
+# Calculate Cook's Distance for the Lung Cancer Mortality and Smoking model
+cooksd_mortality <- cooks.distance(lm_lung_cancer_mortality_vs_smoking)
+
+# Plot Cook's Distance with an extended y-axis limit
+plot(
+  cooksd_mortality,
+  main = "Cook's Distance - Lung Cancer Mortality Model",  # Plot title
+  ylab = "Cook's Distance",  # Y-axis label
+  type = "h",               # Use vertical lines for Cook's Distance
+  col = "red",              # Make the lines red
+  lwd = 2,                  # Line width
+  ylim = c(0, 0.5)          # Extend the upper limit of the y-axis
+)
+
+# Add labels for each Local Authority
+text(
+  x = 1:length(cooksd_mortality),
+  y = cooksd_mortality,
+  labels = smoking_lung_cancer_mortality$`Local Authority`,  # Local Authority names
+  cex = 0.7,                # Adjust text size for readability
+  pos = 4,                  # Position labels to the right of each point
+  col = "blue"              # Set label colour to blue
+)
+
+# Add the threshold line for Cook's Distance (4/n rule)
+threshold_mortality <- 4 / length(cooksd_mortality)  # Common threshold is 4/n
+abline(h = threshold_mortality, col = "purple", lty = 2)  # Dashed purple line for threshold
+
+
+```
+
+# 8. Smoking, Deprivation and Lung Cancer Registrations  
+
+## Fit Multiple Linear Regression Model for Smoking, Deprivation and Lung Cancer Registrations with interaction
+```{r}
+# Fit Multiple Linear Regression Model for Smoking and Deprivation Effect on Lung Cancer Registrations
+lm_lungcancer_deprivation_smoking_interaction <- lm(
+  `Lung Cancer Registrations per 100,000 (2017-2019)` ~ 
+    `IMD Deprivation Score (2019)` * `Smoking Prevalence (%) (2022-2023)`,
+  data = smoking_deprivation_lung_cancer_registrations
+)
+
+# Summarise the model
+summary(lm_lungcancer_deprivation_smoking_interaction)
+
+# Check for multicollinearity using Variance Inflation Factors (VIFs)
+vif(lm_lungcancer_deprivation_smoking_interaction)
+
+```
+```{r}
+# Centre the predictors for lung cancer model as high multicollinearity
+smoking_deprivation_lung_cancer_registrations$IMD_centered <- scale(
+  smoking_deprivation_lung_cancer_registrations$`IMD Deprivation Score (2019)`,
+  center = TRUE, scale = FALSE
+)
+
+smoking_deprivation_lung_cancer_registrations$Smoking_centered <- scale(
+  smoking_deprivation_lung_cancer_registrations$`Smoking Prevalence (%) (2022-2023)`,
+  center = TRUE, scale = FALSE
+)
+
+# Fit the multiple regression model with centered predictors and interaction
+lm_lungcancer_deprivation_smoking_interaction_centered <- lm(
+  `Lung Cancer Registrations per 100,000 (2017-2019)` ~ 
+    IMD_centered * Smoking_centered,
+  data = smoking_deprivation_lung_cancer_registrations
+)
+
+# Summarise the centred model
+summary(lm_lungcancer_deprivation_smoking_interaction_centered)
+
+# Check VIFs after centring
+vif(lm_lungcancer_deprivation_smoking_interaction_centered)
+
+```
+
+```
+
